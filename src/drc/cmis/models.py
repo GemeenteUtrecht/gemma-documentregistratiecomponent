@@ -1,14 +1,8 @@
-import logging
-
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 
-from zaakmagazijn.api.stuf.utils import get_model_field, get_model_value
-from zaakmagazijn.utils.fields import StUFDateField
-
 from .choices import ChangeLogStatus
-
-logger = logging.getLogger(__name__)
+from .utils import get_model_field, get_model_value
 
 
 class ChangeLog(models.Model):
@@ -43,12 +37,9 @@ class CMISMixin(models.Model):
                 field_class = None
 
             val = get_model_value(self, field_name)
-            if val is None and not allow_none:
-                val = ''
-
-            if val and isinstance(field_class, StUFDateField):
-                val = "{year}-{month}-{day}".format(year=val[0:4], month=val[4:6], day=val[6:8])
-
+            if val is None:
+                if not allow_none:
+                    val = ''
             result[cmis_property] = val
 
         return result

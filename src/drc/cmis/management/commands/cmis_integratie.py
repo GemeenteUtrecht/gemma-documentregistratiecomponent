@@ -3,7 +3,7 @@ import logging
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext as _
 
-from ...client import CMISDMSClient
+from ..client import CMISDRCClient
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class Command(BaseCommand):
         dryrun = options.get('dryrun', False)
         verbosity = options.get('verbosity', False)
 
-        client = CMISDMSClient()
+        client = CMISDRCClient()
         result = client.sync(dryrun)
 
         msg = ', '.join(['{}: {}'.format(k, v) for k, v in result.items()])

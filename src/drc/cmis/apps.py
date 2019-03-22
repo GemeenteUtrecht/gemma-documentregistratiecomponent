@@ -1,13 +1,15 @@
 from django.apps import AppConfig
+from django.conf import settings
 from django.core.checks import Error, Tags, register
 
 
 class CMISConfig(AppConfig):
-    name = 'zaakmagazijn.cmis'
-    verbose_name = "CMIS"
+    name = 'drc.cmis'
+    verbose_name = 'CMIS'
 
     def ready(self):
-        from . import signals  # noqa
+        if settings.CMIS_BACKEND_ENABLED:
+            from . import signals
         register(check_cmis, Tags.compatibility, deploy=True)
 
 
@@ -32,41 +34,23 @@ def check_cmis(app_configs, **kwargs):
     """
     from .client import default_client as client
     from .choices import CMISCapabilities, CMISCapabilityChanges
-
     errors = []
-
     try:
         capabilities = client._repo.capabilities
     except Exception:
-        errors.append(
-            Error(
-                'Could not communicate with the DMS.',
-                hint='Make sure the authentication and host settings are correct.'
-            )
-        )
+        errors.append(Error('Could not communicate with the DMS.',
+          hint='Make sure the authentication and host settings are correct.'))
         return errors
-
-    multifiling = capabilities.get(CMISCapabilities.multifiling, None)
-    if not multifiling:
-        errors.append(
-            Error('The DMS does not support Multifiling, or it\'s disabled.')
-        )
-
-    # TODO [KING]: cmislib requires unfiling to be enabled to be able to call folder.removeObject
-    # (removeObjectFromFolder CMIS operation), but this is not explicitly mentioned in the spec
-    unfiling = capabilities.get(CMISCapabilities.unfiling, None)
-    if not unfiling:
-        errors.append(
-            Error('The DMS does not support Unfiling or it\'s disabled.')
-        )
-
-    changes = capabilities.get(CMISCapabilities.changes, None)
-    if not changes or changes == CMISCapabilityChanges.none:
-        errors.append(
-            Error(
-                'The DMS does not support Change Log, or it\'s disabled.',
-                hint='In case you\'re running Alfresco, make sure to add the relevant audit.* properties.'
-            )
-        )
+    else:
+        multifiling = capabilities.get(CMISCapabilities.multifiling, None)
+        if not multifiling:
+            errors.append(Error("The DMS does not support Multifiling, or it's disabled."))
+        unfiling = capabilities.get(CMISCapabilities.unfiling, None)
+        if not unfiling:
+            errors.append(Error("The DMS does not support Unfiling or it's disabled."))
+        changes = capabilities.get(CMISCapabilities.changes, None)
+        if not changes or changes == CMISCapabilityChanges.none:
+            errors.append(Error("The DMS does not support Change Log, or it's disabled.",
+              hint="In case you're running Alfresco, make sure to add the relevant audit.* properties."))
 
     return errors

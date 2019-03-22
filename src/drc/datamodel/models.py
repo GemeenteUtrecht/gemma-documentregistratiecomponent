@@ -10,6 +10,8 @@ from vng_api_common.fields import (
 )
 from vng_api_common.validators import alphanumeric_excluding_diacritic
 
+from drc.cmis.models import CMISMixin
+
 from .constants import (
     ChecksumAlgoritmes, OndertekeningSoorten, RelatieAarden, Statussen
 )
@@ -133,7 +135,7 @@ class InformatieObject(models.Model):
     })
 
 
-class EnkelvoudigInformatieObject(InformatieObject):
+class EnkelvoudigInformatieObject(CMISMixin, InformatieObject):
     # TODO: validate mime types
     formaat = models.CharField(
         max_length=255, blank=True,
@@ -177,6 +179,56 @@ class EnkelvoudigInformatieObject(InformatieObject):
         'waarde': integriteit_waarde,
         'datum': integriteit_datum,
     })
+
+    _object_id = models.TextField(help_text='CMIS storage object id, internal use only', blank=True)
+
+    CMIS_MAPPING = {
+        'zsdms:documenttaal': 'taal',  # v
+        'zsdms:documentLink': 'link',  # o
+
+        'cmis:name': 'titel',  # v
+        # 'zsdms:zaakidentificatie': 'identificatie',
+        'zsdms:documentIdentificatie': 'identificatie',  # v
+        'zsdms:documentcreatiedatum': 'creatiedatum',  # v (kan verschillen van cmis:creationDate)
+        'zsdms:documentontvangstdatum': 'ontvangstdatum',  # o
+        'zsdms:documentbeschrijving': 'beschrijving',  # o
+        'zsdms:documentverzenddatum': 'verzenddatum',  # o
+        # TODO [TECH]: Change field to vertrouw*E*lijkaanduiding
+        'zsdms:vertrouwelijkaanduiding': 'vertrouwelijkheidaanduiding',  # v
+        'zsdms:documentauteur': 'auteur',  # v (kan verschillen van cmis:createdBy)
+        # 'zsdms:documentversie': 'versie',  # o
+        'zsdms:documentstatus': 'status',  # o
+
+        'zsdms:dct.omschrijving': 'informatieobjecttype',  # o
+        # 'zsdms:dct.categorie': 'informatieobjecttype__informatieobjectcategorie',  # o
+
+        # 'Content-stream': 'Documentinhoud', # v (is content-stream van EDC object)
+    }
+
+    # def get_cmis_properties(self, **kwargs) -> dict:
+    #     properties = super().get_cmis_properties(**kwargs)
+    #     # The following properties cannot be filled by the ZS:
+    #     # tmlo:ondertekening
+    #     # tmlo:verantwoordelijkeFunctionaris
+
+    #     return properties
+
+    def update_cmis_properties(self, new_cmis_properties, commit=False):
+        if not self.pk:
+            raise ValueError('Cannot update CMIS properties on unsaved instance.')
+
+        updated_objects = set()
+
+        for cmis_property, _field_name in self.CMIS_MAPPING.items():
+            if cmis_property not in new_cmis_properties:
+                continue
+            updated_objects.add(self)
+
+        if commit:
+            for obj in updated_objects:
+                obj.save()
+
+        return updated_objects
 
 
 class Gebruiksrechten(models.Model):

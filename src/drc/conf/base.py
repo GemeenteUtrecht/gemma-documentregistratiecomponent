@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     # Project applications.
     'drc.accounts',
     'drc.api',
+    'drc.cmis',
     'drc.datamodel',
     'drc.sync',
     'drc.utils',

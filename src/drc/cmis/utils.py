@@ -1,3 +1,6 @@
+from django.contrib.admin.utils import get_fields_from_path
+from django.db.models.constants import LOOKUP_SEP
+
 from .choices import CMISObjectType
 
 
@@ -9,19 +12,15 @@ def get_cmis_object_id_parts(cmis_object_id):
     :return: A `tuple` containing the actual object Id, version and path as strings.
     """
     parts = cmis_object_id.split(';')
-
     version = None
     if len(parts) == 2:
         version = parts[1]
-
     parts = parts[0].rsplit('/')
     object_id = parts[-1]
-
     path = None
     if len(parts) == 2:
         path = parts[0]
-
-    return object_id, version, path
+    return (object_id, version, path)
 
 
 def get_cmis_object_id(cmis_object_id):
@@ -38,15 +37,17 @@ class FolderConfig:
     __slots__ = ['type', 'name']
 
     def __init__(self, type_=None, name=None):
-        assert type_ or name, "Either type or name is required"
+        if not type_:
+            if not name:
+                raise AssertionError('Either type or name is required')
         self.type = type_
         self.name = name
 
     def __repr__(self):
-        return "<{} type_={!r} name={!r}>".format(self.__class__.__name__, self.type, self.name)
+        return ('<{} type_={!r} name={!r}>').format(self.__class__.__name__, self.type, self.name)
 
 
-def upload_to(zaak) -> list:
+def upload_to(zaak_url):
     """
     Return the fully qualified upload path for the zaak, generic case.
 
@@ -55,41 +56,42 @@ def upload_to(zaak) -> list:
     for the folder name. The type is required to be able to generate the
     appropriate cmis properties.
 
-    :param zaak: :class:`zaakmagazijn.rgbz.models.Zaak` instance.
+    :param zaak_url: :class:`string`.
     :return: list of FolderConfig objects, in order of root -> leaf
     """
     return [
         FolderConfig(name='Zaken', type_=CMISObjectType.zaken),
-        FolderConfig(type_=CMISObjectType.zaaktype),
-        FolderConfig(type_=CMISObjectType.zaak_folder),
+        FolderConfig(type_=CMISObjectType.zaak_folder)
     ]
 
 
-def upload_to_date_based(zaak) -> list:
+def get_model_value(obj, field_name):
     """
-    Return the fully qualified upload path for the zaak, Haarlem variant.
+    Returns the value belonging to `field_name` on `Model` instance.
+    This works for related fields.
 
-    Each item from the return list is a FolderConfig object with either a
-    type, name or both defined. If a name is defined, this name will be used
-    for the folder name. The type is required to be able to generate the
-    appropriate cmis properties.
+    Example::
 
-    :param zaak: :class:`zaakmagazijn.rgbz.models.Zaak` instance.
-    :return: list of FolderConfig objects, in order of root -> leaf
+        >>> get_model_value(Zaak, 'zaaktype__zaaktypeomschrijving')
+        'Some description'
+
     """
-    assert len(zaak.startdatum) == 8, "Zaak.startdatum moet volledig bekend zijn"
-    year, month, day = (
-        zaak.startdatum[0:4],
-        zaak.startdatum[4:6],
-        zaak.startdatum[6:8]
-    )
-    return [
-        FolderConfig(name='Sites'),
-        FolderConfig(name='archief'),
-        FolderConfig(name='documentLibrary', type_=CMISObjectType.zaken),
-        FolderConfig(type_=CMISObjectType.zaaktype),
-        FolderConfig(name=year),
-        FolderConfig(name=month),
-        FolderConfig(name=day),
-        FolderConfig(type_=CMISObjectType.zaak_folder),
-    ]
+    fields = field_name.split(LOOKUP_SEP)
+    for field in fields:
+        obj = getattr(obj, field)
+
+    return obj
+
+
+def get_model_field(model, field_name):
+    """
+    Returns the `Field` instance belonging to `field_name` on a `Model`
+    instance or class. This works for related fields.
+
+    Example::
+
+        >>> get_model_field(Zaak, 'zaaktype__zaaktypeomschrijving')
+        <django.db.models.fields.CharField: zaaktypeomschrijving>
+
+    """
+    return get_fields_from_path(model, field_name)[-1]

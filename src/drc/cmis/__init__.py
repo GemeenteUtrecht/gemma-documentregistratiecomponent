@@ -1,1 +1,1 @@
-default_app_config = 'zaakmagazijn.cmis.apps.CMISConfig'
+default_app_config = 'drc.cmis.apps.CMISConfig'
