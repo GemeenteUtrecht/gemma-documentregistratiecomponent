@@ -31,3 +31,11 @@ local.py
 .env
 
 docs/_build
+
+\.coverage
+
+\.vscode/
+
+alfresco/
+
+coverage\.xml
