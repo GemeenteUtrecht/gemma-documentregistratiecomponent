@@ -25,7 +25,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dryrun = options.get('dryrun', False)
-        verbosity = options.get('verbosity', False)
 
         client = CMISDRCClient()
         result = client.sync(dryrun)

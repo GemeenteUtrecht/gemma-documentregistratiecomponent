@@ -94,9 +94,10 @@ class CMISDRCClient(DRCClient):
         """
         query = self.document_query(document.identificatie)
         result_set = self._repo.query(query)
-        if not len(result_set):
+        unpacked_result_set = [item for item in result_set]
+        if not unpacked_result_set:
             raise DocumentDoesNotExistError(('Document met identificatie {} bestaat niet in het DRC').format(document.identificatie))
-        doc = [item for item in result_set][0]
+        doc = unpacked_result_set[0]
         doc = doc.getLatestVersion()
         if checkout_id is not None:
             pwc = doc.getPrivateWorkingCopy()
@@ -161,13 +162,7 @@ class CMISDRCClient(DRCClient):
 
     def maak_zaakdocument_met_inhoud(self, document, zaak_url=None, filename=None, sender=None, stream=None, content_type=None):
         """
-        In afwijking van de KING specificatie waarbij het document aanmaken
-        en het document van inhoud voorzien aparte stappen zijn, wordt in deze
-        functie in 1 stap het document aangemaakt met inhoud. Dit voorkomt dat
-        er in het DRC direct een versie 1.1 ontstaat, waarbij versie 1.0 een
-        leeg document betreft, en versie 1.1 het eigenlijke document pas is.
-
-        :param zaak: TODO
+        :param zaak_url: TODO
         :param document: EnkelvoudigInformatieObject instantie die de
           meta-informatie van het document bevat
         :param filename: Bestandsnaam van het aan te maken document.
@@ -348,7 +343,8 @@ class CMISDRCClient(DRCClient):
                 change_log.delete()
                 raise SyncException('A synchronization process is already running.')
             else:
-                change_log = None
+                pass
+                # change_log = None
             last_change_log = (ChangeLog.objects.filter(status=ChangeLogStatus.completed)).last()
             last_zs_change_log_token = last_change_log.token if last_change_log else 0
             max_items = dms_change_log_token - last_zs_change_log_token
@@ -418,7 +414,7 @@ class CMISDRCClient(DRCClient):
                             object_id, change_type, e, exc_info=True
                         )
 
-                if not dryrun:
+                if not dryrun and change_log:
                     change_log.status = ChangeLogStatus.completed
                     change_log.save()
                 return OrderedDict([

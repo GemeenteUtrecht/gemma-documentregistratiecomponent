@@ -146,6 +146,16 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         eio.integriteit = integriteit
         eio.ondertekening = ondertekening
         eio.save()
+
+        if settings.CMIS_BACKEND_ENABLED:
+            from drc.cmis.client import default_client
+            default_client.maak_zaakdocument_met_inhoud(
+                document=eio,
+                zaak_url=None,
+                filename=None,
+                sender=settings.CMIS_SENDER_PROPERTY,
+                stream=eio.inhoud
+            )
         return eio
 
     def update(self, instance, validated_data):
@@ -154,7 +164,11 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         """
         instance.integriteit = validated_data.pop('integriteit', None)
         instance.ondertekening = validated_data.pop('ondertekening', None)
-        return super().update(instance, validated_data)
+        eio = super().update(instance, validated_data)
+
+        # TODO: update document
+
+        return eio
 
 
 class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):

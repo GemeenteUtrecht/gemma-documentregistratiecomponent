@@ -16,41 +16,31 @@ from .mixins import DMSMixin
 @skipIf(not settings.CMIS_BACKEND_ENABLED, "Skipped if CMIS should not be active")
 class CMISClientTests(DMSMixin, TestCase):
     def test_maak_zaakdocument(self):
-        """
-        4.3.5.3 - test dat het aanmaken van een zaakdocument mogelijk is.
-        """
         self.client.creeer_zaakfolder(self.zaak_url)
-
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam',
-            identificatie='31415926535',
             ontvangstdatum=date(2017, 1, 1),
             beschrijving='Een beschrijving',
         )
 
+        # cmis_doc = self.client._get_cmis_doc(document)
         cmis_doc = self.client.maak_zaakdocument(document, self.zaak_url)
-        # no actual binary data is added
-        # we have to set an (empty) stream, otherwise cmislib blocks us from setting/reading the stream
-        # self.assertIsNone(cmis_doc.properties['cmis:contentStreamFileName'])
 
         # verify that it identifications are unique
         with self.assertRaises(DocumentExistsError):
             self.client.maak_zaakdocument(document, self.zaak_url)
 
+        document.refresh_from_db()
         # verify expected props
         self.assertExpectedProps(cmis_doc, {
-            # when no contentstreamfilename is provided, it is apparently set to the document name
             'cmis:contentStreamFileName': 'testnaam',
-            # 'cmis:contentStreamId': None,
-            'cmis:contentStreamLength': 0,  # because we created an empty object
-            'cmis:contentStreamMimeType': 'application/binary',  # the default if it couldn't be determined
-            # 'zsdms:dct.categorie': document.informatieobjecttype.informatieobjectcategorie,
+            'cmis:contentStreamLength': 0,
+            'cmis:contentStreamMimeType': 'application/binary',
             'zsdms:dct.omschrijving': document.informatieobjecttype,
-            'zsdms:documentIdentificatie': '31415926535',
+            'zsdms:documentIdentificatie': document.identificatie,
             'zsdms:documentauteur': document.auteur,
             'zsdms:documentbeschrijving': 'Een beschrijving',
             'zsdms:documentcreatiedatum': datetime.combine(document.creatiedatum, datetime.min.time()).replace(tzinfo=pytz.utc),
-            # 'zsdms:documentformaat': None,
             'zsdms:documentLink': None,
             'zsdms:documentontvangstdatum': datetime.combine(document.ontvangstdatum, datetime.min.time()).replace(tzinfo=pytz.utc),
             'zsdms:documentstatus': None,
@@ -60,7 +50,6 @@ class CMISClientTests(DMSMixin, TestCase):
             'zsdms:vertrouwelijkaanduiding': document.vertrouwelijkheidaanduiding
         })
 
-        document.refresh_from_db()
         self.assertEqual(
             document._object_id,
             cmis_doc.properties['cmis:objectId'].rsplit(';')[0]
@@ -71,7 +60,6 @@ class CMISClientTests(DMSMixin, TestCase):
 
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam',
-            identificatie='31415926535',
             ontvangstdatum=date(2017, 1, 1),
             beschrijving='Een beschrijving',
         )
@@ -79,10 +67,10 @@ class CMISClientTests(DMSMixin, TestCase):
         cmis_doc = self.client.maak_zaakdocument_met_inhoud(document, self.zaak_url, stream=BytesIO(b'test'))
         self.assertExpectedProps(cmis_doc, {
             'cmis:contentStreamFileName': 'testnaam',
-            'cmis:contentStreamLength': 4,  # because we created an empty object
-            'cmis:contentStreamMimeType': 'application/binary',  # the default if it couldn't be determined
+            'cmis:contentStreamLength': 4,
+            'cmis:contentStreamMimeType': 'application/binary',
             'zsdms:dct.omschrijving': document.informatieobjecttype,
-            'zsdms:documentIdentificatie': '31415926535',
+            'zsdms:documentIdentificatie': document.identificatie,
             'zsdms:documentauteur': document.auteur,
             'zsdms:documentbeschrijving': 'Een beschrijving',
             'zsdms:documentcreatiedatum': datetime.combine(document.creatiedatum, datetime.min.time()).replace(tzinfo=pytz.utc),
@@ -107,7 +95,6 @@ class CMISClientTests(DMSMixin, TestCase):
 
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam',
-            identificatie='31415926535',
             ontvangstdatum=date(2017, 1, 1),
             beschrijving='Een beschrijving',
         )
@@ -118,7 +105,7 @@ class CMISClientTests(DMSMixin, TestCase):
             'cmis:contentStreamLength': 4,
             'cmis:contentStreamMimeType': 'application/binary',
             'zsdms:dct.omschrijving': document.informatieobjecttype,
-            'zsdms:documentIdentificatie': '31415926535',
+            'zsdms:documentIdentificatie': document.identificatie,
             'zsdms:documentauteur': 'maykin',  # overridden by the sender
             'zsdms:documentbeschrijving': 'Een beschrijving',
             'zsdms:documentcreatiedatum': datetime.combine(document.creatiedatum, datetime.min.time()).replace(tzinfo=pytz.utc),
@@ -189,7 +176,7 @@ class CMISClientTests(DMSMixin, TestCase):
         CMIS-objectproperties.
         """
         document = EnkelvoudigInformatieObjectFactory.create(
-            titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
+            titel='testnaam', beschrijving='Een beschrijving'
         )
         self.client.maak_zaakdocument(document)
         document.refresh_from_db()
@@ -203,7 +190,7 @@ class CMISClientTests(DMSMixin, TestCase):
 
     def test_relateer_aan_zaak(self):
         document = EnkelvoudigInformatieObjectFactory.create(
-            titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
+            titel='testnaam', beschrijving='Een beschrijving'
         )
         zaak_folder = self.client.creeer_zaakfolder(self.zaak_url)
         self.client.maak_zaakdocument(document)
@@ -219,7 +206,7 @@ class CMISClientTests(DMSMixin, TestCase):
     def test_ontkoppel_zaakdocument(self):
         cmis_folder = self.client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
-            titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
+            titel='testnaam', beschrijving='Een beschrijving'
         )
         self.client.maak_zaakdocument(document, self.zaak_url)
         result = self.client.ontkoppel_zaakdocument(document, self.zaak_url)
@@ -231,7 +218,7 @@ class CMISClientTests(DMSMixin, TestCase):
     def test_verwijder_document(self):
         zaak_folder = self.client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
-            titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
+            titel='testnaam', beschrijving='Een beschrijving'
         )
         self.client.maak_zaakdocument(document, self.zaak_url)
 

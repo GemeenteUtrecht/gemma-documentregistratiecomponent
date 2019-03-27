@@ -10,8 +10,9 @@ from vng_api_common.constants import ObjectTypes, VertrouwelijkheidsAanduiding
 from ..constants import RelatieAarden
 
 
+# @factory.django.mute_signals(signals.pre_save, signals.post_save)
 class EnkelvoudigInformatieObjectFactory(factory.django.DjangoModelFactory):
-    identificatie = uuid.uuid4().hex
+    identificatie = factory.Sequence(lambda n: '{}{}'.format(uuid.uuid4().hex, n))
     bronorganisatie = factory.Faker('ssn', locale='nl_NL')
     creatiedatum = datetime.date(2018, 6, 27)
     titel = 'some titel'
@@ -26,6 +27,7 @@ class EnkelvoudigInformatieObjectFactory(factory.django.DjangoModelFactory):
         model = 'datamodel.EnkelvoudigInformatieObject'
 
 
+# @factory.django.mute_signals(signals.pre_save, signals.post_save)
 class ObjectInformatieObjectFactory(factory.django.DjangoModelFactory):
 
     informatieobject = factory.SubFactory(EnkelvoudigInformatieObjectFactory)

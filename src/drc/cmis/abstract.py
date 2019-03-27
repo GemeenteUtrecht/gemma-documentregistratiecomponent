@@ -1,9 +1,3 @@
-from collections import OrderedDict
-from io import BytesIO
-
-from cmislib.atompub.binding import AtomPubDocument
-
-
 class DRCClient:
     """
     Abstract base class for DRC interaction.

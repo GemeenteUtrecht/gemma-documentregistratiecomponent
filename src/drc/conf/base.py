@@ -246,6 +246,14 @@ LOGGING = {
             'maxBytes': 1024 * 1024 * 10,  # 10 MB
             'backupCount': 10
         },
+        'cmis': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOGGING_DIR, 'cmis.log'),
+            'formatter': 'verbose',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 10
+        },
         'performance': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
@@ -265,6 +273,11 @@ LOGGING = {
             'handlers': ['project'],
             'level': 'INFO',
             'propagate': True,
+        },
+        'drc.cmis': {
+            'handlers': ['cmis'],
+            'level': 'INFO',
+            'propagate': False,
         },
         'django.request': {
             'handlers': ['django'],

@@ -9,8 +9,7 @@ class CMISConfig(AppConfig):
 
     def ready(self):
         if settings.CMIS_BACKEND_ENABLED:
-            from . import signals
-        register(check_cmis, Tags.compatibility, deploy=True)
+            register(check_cmis, Tags.compatibility, deploy=True)
 
 
 def check_cmis(app_configs, **kwargs):

@@ -1,5 +1,6 @@
 import uuid as _uuid
 
+from django.conf import settings
 from django.db import models, transaction
 from django.utils.translation import ugettext_lazy as _
 
@@ -10,6 +11,7 @@ from vng_api_common.fields import (
 )
 from vng_api_common.validators import alphanumeric_excluding_diacritic
 
+from drc.cmis.client import default_client
 from drc.cmis.models import CMISMixin
 
 from .constants import (
@@ -183,35 +185,19 @@ class EnkelvoudigInformatieObject(CMISMixin, InformatieObject):
     _object_id = models.TextField(help_text='CMIS storage object id, internal use only', blank=True)
 
     CMIS_MAPPING = {
-        'zsdms:documenttaal': 'taal',  # v
-        'zsdms:documentLink': 'link',  # o
-
-        'cmis:name': 'titel',  # v
-        # 'zsdms:zaakidentificatie': 'identificatie',
-        'zsdms:documentIdentificatie': 'identificatie',  # v
-        'zsdms:documentcreatiedatum': 'creatiedatum',  # v (kan verschillen van cmis:creationDate)
-        'zsdms:documentontvangstdatum': 'ontvangstdatum',  # o
-        'zsdms:documentbeschrijving': 'beschrijving',  # o
-        'zsdms:documentverzenddatum': 'verzenddatum',  # o
-        # TODO [TECH]: Change field to vertrouw*E*lijkaanduiding
-        'zsdms:vertrouwelijkaanduiding': 'vertrouwelijkheidaanduiding',  # v
-        'zsdms:documentauteur': 'auteur',  # v (kan verschillen van cmis:createdBy)
-        # 'zsdms:documentversie': 'versie',  # o
-        'zsdms:documentstatus': 'status',  # o
-
-        'zsdms:dct.omschrijving': 'informatieobjecttype',  # o
-        # 'zsdms:dct.categorie': 'informatieobjecttype__informatieobjectcategorie',  # o
-
-        # 'Content-stream': 'Documentinhoud', # v (is content-stream van EDC object)
+        'zsdms:documenttaal': 'taal',
+        'zsdms:documentLink': 'link',
+        'cmis:name': 'titel',
+        'zsdms:documentIdentificatie': 'identificatie',
+        'zsdms:documentcreatiedatum': 'creatiedatum',
+        'zsdms:documentontvangstdatum': 'ontvangstdatum',
+        'zsdms:documentbeschrijving': 'beschrijving',
+        'zsdms:documentverzenddatum': 'verzenddatum',
+        'zsdms:vertrouwelijkaanduiding': 'vertrouwelijkheidaanduiding',
+        'zsdms:documentauteur': 'auteur',
+        'zsdms:documentstatus': 'status',
+        'zsdms:dct.omschrijving': 'informatieobjecttype',
     }
-
-    # def get_cmis_properties(self, **kwargs) -> dict:
-    #     properties = super().get_cmis_properties(**kwargs)
-    #     # The following properties cannot be filled by the ZS:
-    #     # tmlo:ondertekening
-    #     # tmlo:verantwoordelijkeFunctionaris
-
-    #     return properties
 
     def update_cmis_properties(self, new_cmis_properties, commit=False):
         if not self.pk:

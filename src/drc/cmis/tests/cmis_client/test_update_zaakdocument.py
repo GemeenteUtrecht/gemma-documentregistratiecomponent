@@ -87,7 +87,7 @@ class CMISClientTests(DMSMixin, TestCase):
         pwc = cmis_doc.checkout()
         pwc.reload()
         checkout_id = pwc.properties['cmis:versionSeriesCheckedOutId']
-        inhoud = BinaireInhoud(b'leaky abstraction...', filename='andere bestandsnaam.txt')
+        inhoud = BinaireInhoud(b'leaky abstraction...', filename='testnaam')
 
         # TODO: Fix this test. Should not raise an error!
         with self.assertRaises(Exception):
