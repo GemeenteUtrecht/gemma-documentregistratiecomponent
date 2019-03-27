@@ -36,6 +36,9 @@ docs/_build
 
 \.vscode/
 
-alfresco/
+alfresco/.vagrant
+alfresco/*.bin
+alfresco/*.log*
+alfresco/*.zip
 
 coverage\.xml
