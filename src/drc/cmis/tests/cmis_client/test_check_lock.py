@@ -11,30 +11,30 @@ from drc.cmis.exceptions import DocumentConflictException
 from drc.cmis.storage import BinaireInhoud
 from drc.datamodel.tests.factories import EnkelvoudigInformatieObjectFactory
 
-from .mixins import DMSMixin
+from ..mixins import DMSMixin
 
 
 @skipIf(not settings.CMIS_BACKEND_ENABLED, "Skipped if CMIS should not be active")
 class CMISClientTests(DMSMixin, TestCase):
     def test_check_lock_status_unlocked(self):
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        self.client.maak_zaakdocument(document, self.zaak_url)
+        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
 
-        result = self.client.is_locked(document)
+        result = self.cmis_client.is_locked(document)
         self.assertFalse(result)
 
     def test_check_lock_status_locked(self):
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        self.client.maak_zaakdocument(document, self.zaak_url)
-        self.client.checkout(document)
+        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
+        self.cmis_client.checkout(document)
 
-        result = self.client.is_locked(document)
+        result = self.cmis_client.is_locked(document)
 
         self.assertTrue(result)
 
@@ -43,7 +43,7 @@ class CMISClientTests(DMSMixin, TestCase):
         Assert that it's possible to create an empty document, lock it for
         update and then effectively set the content thereby unlocking it.
         """
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
 
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
@@ -51,20 +51,20 @@ class CMISClientTests(DMSMixin, TestCase):
         inhoud = BinaireInhoud(b'leaky abstraction...', filename='bestand.txt')
 
         # flow
-        self.client.maak_zaakdocument(document, self.zaak_url)  # create empty doc
-        checkout_id, _checkout_by = self.client.checkout(document)  # lock for update
+        self.cmis_client.maak_zaakdocument(document, self.zaak_url)  # create empty doc
+        checkout_id, _checkout_by = self.cmis_client.checkout(document)  # lock for update
         # TODO: Broken here. Test not possible
         with self.assertRaises(DocumentConflictException):
-            self.client.update_zaakdocument(document, checkout_id, inhoud=inhoud)
+            self.cmis_client.update_zaakdocument(document, checkout_id, inhoud=inhoud)
 
-        # filename, file_obj = self.client.geef_inhoud(document)
+        # filename, file_obj = self.cmis_client.geef_inhoud(document)
 
         # # make assertions about the results
         # self.assertEqual(filename, 'bestand.txt')
         # self.assertEqual(file_obj.read(), b'leaky abstraction...')
 
         # # verify expected props
-        # cmis_doc = self.client._get_cmis_doc(document)
+        # cmis_doc = self.cmis_client._get_cmis_doc(document)
         # self.assertExpectedProps(cmis_doc, {
         #     'cmis:contentStreamFileName': 'bestand.txt',
         #     'cmis:contentStreamLength': 20,

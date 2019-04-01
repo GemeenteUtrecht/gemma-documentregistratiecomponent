@@ -17,7 +17,7 @@ class ChangeLog(models.Model):
 
 
 class CMISMixin(models.Model):
-    CMIS_MAPPING = None
+    CMIS_MAPPING = {}
 
     class Meta:
         abstract = True

@@ -121,7 +121,6 @@ class CMISDRCClient(DRCClient):
           cmslib representatie van de (aangemaakte) zaakmap.
         """
         upload_to = self.upload_to(zaak_url)
-        # if not settings.CMIS_ZAKEN_TYPE_ENABLED:
         for folder_config in upload_to:
             if folder_config.type == CMISObjectType.zaken:
                 folder_config.type = 'cmis:folder'

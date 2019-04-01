@@ -37,9 +37,8 @@ class FolderConfig:
     __slots__ = ['type', 'name']
 
     def __init__(self, type_=None, name=None):
-        if not type_:
-            if not name:
-                raise AssertionError('Either type or name is required')
+        if not type_ and not name:
+            raise AssertionError('Either type or name is required')
         self.type = type_
         self.name = name
 

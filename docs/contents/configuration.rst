@@ -9,6 +9,19 @@ Settings from environment
 
 Review the :ref:`settings` to see available settings.
 
+# TODO: Improve the CMIS settings documentation.
+CMIS_BACKEND_ENABLED = False
+
+This is an important setting if you wish to use software like Alfresco as a storage backend.
+The most basic setting that you can use is simply setting the value to `True`.
+
+CMIS_CLIENT_URL = 'http://localhost:8080/alfresco/cmisatom'
+CMIS_CLIENT_USER = 'admin'
+CMIS_CLIENT_USER_PASSWORD = 'admin'
+CMIS_SENDER_PROPERTY = None
+CMIS_UPLOAD_TO = 'drc.cmis.utils.upload_to'
+CMIS_CLIENT_CLASS = 'drc.cmis.client.CMISDRCClient'
+
 .. note::
 
     The ``IS_HTTPS`` environment variable is a common pitfall. Set it to a

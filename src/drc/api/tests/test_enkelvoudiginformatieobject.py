@@ -10,13 +10,14 @@ from freezegun import freeze_time
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from drc.cmis.tests.mixins import DMSMixin
 from drc.datamodel.models import EnkelvoudigInformatieObject
 from drc.datamodel.tests.factories import EnkelvoudigInformatieObjectFactory
 
 
 @freeze_time('2018-06-27')
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
-class EnkelvoudigInformatieObjectAPITests(APITestCase):
+class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
 
     list_url = reverse_lazy('enkelvoudiginformatieobject-list', kwargs={'version': '1'})
 
@@ -235,3 +236,49 @@ class EnkelvoudigInformatieObjectAPITests(APITestCase):
 
         self.assertEqual(len(response_data), 1)
         self.assertEqual(response_data[0]['identificatie'], 'foo')
+
+    @override_settings(LINK_FETCHER='zds_schema.mocks.link_fetcher_200')
+    def test_update(self):
+        content = {
+            'identificatie': uuid.uuid4().hex,
+            'bronorganisatie': '159351741',
+            'creatiedatum': '2018-06-27',
+            'titel': 'detailed summary',
+            'auteur': 'test_auteur',
+            'formaat': 'txt',
+            'taal': 'eng',
+            'bestandsnaam': 'dummy.txt',
+            'inhoud': b64encode(b'some file content').decode('utf-8'),
+            'link': 'http://een.link',
+            'beschrijving': 'test_beschrijving',
+            'informatieobjecttype': 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1',
+            'vertrouwelijkheidaanduiding': 'openbaar',
+        }
+
+        # Send to the API
+        response = self.client.post(self.list_url, content)
+
+        # Test response
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+
+        update_content = {
+            'identificatie': uuid.uuid4().hex,
+            'bronorganisatie': '159351741',
+            'creatiedatum': '2018-06-27',
+            'titel': 'detailed summary',
+            'auteur': 'andere_auteur',
+            'formaat': 'txt',
+            'taal': 'eng',
+            'bestandsnaam': 'dummy.txt',
+            'inhoud': b64encode(b'other content').decode('utf-8'),
+            'link': 'http://een.link',
+            'beschrijving': 'test_beschrijving',
+            'informatieobjecttype': 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1',
+            'vertrouwelijkheidaanduiding': 'openbaar',
+        }
+
+        self.assertEqual(EnkelvoudigInformatieObject.objects.count(), 1)
+        enkelvoudig_informatie = EnkelvoudigInformatieObject.objects.first()
+        object_url = reverse_lazy('enkelvoudiginformatieobject-detail', kwargs={'version': '1', 'uuid': enkelvoudig_informatie.uuid})
+        response = self.client.put(object_url, content)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)

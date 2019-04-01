@@ -6,7 +6,7 @@ from django.test import TestCase
 
 from cmislib.exceptions import ObjectNotFoundException
 
-from .mixins import DMSMixin
+from ..mixins import DMSMixin
 
 
 @skipIf(not settings.CMIS_BACKEND_ENABLED, "Skipped if CMIS should not be active")
@@ -16,12 +16,12 @@ class CMISClientTests(DMSMixin, TestCase):
         Test dat de boomstructuur Zaken -> Zaaktype -> Zaak gemaakt wordt.
         """
         with self.assertRaises(ObjectNotFoundException):
-            self.client._repo.getObjectByPath('/Zaken')
+            self.cmis_client._repo.getObjectByPath('/Zaken')
 
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
 
         # Zaken root folder
-        root_folder = self.client._repo.getObjectByPath('/Zaken')
+        root_folder = self.cmis_client._repo.getObjectByPath('/Zaken')
 
         children = [child for child in root_folder.getChildren()]
         self.assertEqual(len(children), 1)
@@ -47,13 +47,13 @@ class CMISClientTests(DMSMixin, TestCase):
         Test dat de boomstructuur Zaken -> Zaaktype -> Zaak gemaakt wordt.
         """
         with self.assertRaises(ObjectNotFoundException):
-            self.client._repo.getObjectByPath('/Zaken')
+            self.cmis_client._repo.getObjectByPath('/Zaken')
 
         stamp = time()
-        self.client.creeer_zaakfolder(stamp)
+        self.cmis_client.creeer_zaakfolder(stamp)
 
         # Zaken root folder
-        root_folder = self.client._repo.getObjectByPath('/Zaken')
+        root_folder = self.cmis_client._repo.getObjectByPath('/Zaken')
 
         children = [child for child in root_folder.getChildren()]
         self.assertEqual(len(children), 1)

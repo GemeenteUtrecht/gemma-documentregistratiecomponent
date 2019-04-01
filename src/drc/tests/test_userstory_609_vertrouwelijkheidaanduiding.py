@@ -4,6 +4,7 @@ Test value of vertrouwelijkheidaanduiding while creating EnkelvoudigInformatieOb
 See:
 https://github.com/VNG-Realisatie/gemma-zaken/issues/609
 """
+import time
 from base64 import b64encode
 
 from django.test import override_settings, tag
@@ -37,13 +38,14 @@ class US609TestCase(TypeCheckMixin, APITestCase):
 
         with mock_client(responses):
             response = self.client.post(url, {
+                'identificatie': '{}.txt'.format(time.time()),
                 'bronorganisatie': '159351741',
                 'creatiedatum': '2018-06-27',
-                'titel': 'detailed summary',
+                'titel': '{}.txt'.format(time.time()),
                 'auteur': 'test_auteur',
                 'formaat': 'txt',
                 'taal': 'eng',
-                'bestandsnaam': 'dummy.txt',
+                'bestandsnaam': '{}.txt'.format(time.time()),
                 'inhoud': b64encode(b'some file content').decode('utf-8'),
                 'link': 'http://een.link',
                 'beschrijving': 'test_beschrijving',
@@ -70,13 +72,14 @@ class US609TestCase(TypeCheckMixin, APITestCase):
 
         with mock_client(responses):
             response = self.client.post(url, {
+                'identificatie': '{}.txt'.format(time.time()),
                 'bronorganisatie': '159351741',
                 'creatiedatum': '2018-06-27',
-                'titel': 'detailed summary',
+                'titel': '{}.txt'.format(time.time()),
                 'auteur': 'test_auteur',
                 'formaat': 'txt',
                 'taal': 'eng',
-                'bestandsnaam': 'dummy.txt',
+                'bestandsnaam': '{}.txt'.format(time.time()),
                 'inhoud': b64encode(b'some file content').decode('utf-8'),
                 'link': 'http://een.link',
                 'beschrijving': 'test_beschrijving',

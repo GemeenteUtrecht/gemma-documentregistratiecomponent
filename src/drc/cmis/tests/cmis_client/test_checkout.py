@@ -8,7 +8,7 @@ from cmislib.exceptions import UpdateConflictException
 from drc.datamodel.tests.factories import EnkelvoudigInformatieObjectFactory
 
 from ...exceptions import DocumentConflictException, DocumentLockedException
-from .mixins import DMSMixin
+from ..mixins import DMSMixin
 
 
 @skipIf(not settings.CMIS_BACKEND_ENABLED, "Skipped if CMIS should not be active")
@@ -17,13 +17,13 @@ class CMISClientTests(DMSMixin, TestCase):
         """
         Assert that checking out a document locks it and returns the PWC ID
         """
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        cmis_doc = self.client.maak_zaakdocument(document, self.zaak_url)
+        cmis_doc = self.cmis_client.maak_zaakdocument(document, self.zaak_url)
 
-        checkout_id, checkout_by = self.client.checkout(document)
+        checkout_id, checkout_by = self.cmis_client.checkout(document)
 
         pwc = cmis_doc.getPrivateWorkingCopy()
         self.assertEqual(
@@ -33,41 +33,41 @@ class CMISClientTests(DMSMixin, TestCase):
         self.assertEqual(checkout_by, 'admin')
 
     def test_checkout_checked_out_doc(self):
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        cmis_doc = self.client.maak_zaakdocument(document, self.zaak_url)
+        cmis_doc = self.cmis_client.maak_zaakdocument(document, self.zaak_url)
         cmis_doc.checkout()
 
         with self.assertRaises(DocumentLockedException):
-            self.client.checkout(document)
+            self.cmis_client.checkout(document)
 
     def test_cancel_checkout(self):
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        self.client.maak_zaakdocument(document, self.zaak_url)
-        checkout_id, _checkout_by = self.client.checkout(document)
+        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
+        checkout_id, _checkout_by = self.cmis_client.checkout(document)
 
-        result = self.client.cancel_checkout(document, checkout_id)
+        result = self.cmis_client.cancel_checkout(document, checkout_id)
         self.assertIsNone(result)
 
         # if the doc cannot be checked out, it was not unlocked
-        cmis_doc = self.client._get_cmis_doc(document)
+        cmis_doc = self.cmis_client._get_cmis_doc(document)
         try:
             cmis_doc.checkout()
         except UpdateConflictException:
             self.fail("Could not lock document after checkout cancel, it is still locked")
 
     def test_cancel_checkout_invalid_checkout_id(self):
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        self.client.maak_zaakdocument(document, self.zaak_url)
-        _checkout_id, _checkout_by = self.client.checkout(document)
+        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
+        _checkout_id, _checkout_by = self.cmis_client.checkout(document)
 
         with self.assertRaises(DocumentConflictException):
-            self.client.cancel_checkout(document, '')
+            self.cmis_client.cancel_checkout(document, '')

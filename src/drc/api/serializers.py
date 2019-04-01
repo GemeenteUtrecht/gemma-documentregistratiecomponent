@@ -148,14 +148,9 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         eio.save()
 
         if settings.CMIS_BACKEND_ENABLED:
-            from drc.cmis.client import default_client
-            default_client.maak_zaakdocument_met_inhoud(
-                document=eio,
-                zaak_url=None,
-                filename=None,
-                sender=settings.CMIS_SENDER_PROPERTY,
-                stream=eio.inhoud
-            )
+            from drc.cmis.signals import creeer_document
+            creeer_document.send(sender=self.__class__, document=eio)
+
         return eio
 
     def update(self, instance, validated_data):
@@ -166,7 +161,9 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         instance.ondertekening = validated_data.pop('ondertekening', None)
         eio = super().update(instance, validated_data)
 
-        # TODO: update document
+        if settings.CMIS_BACKEND_ENABLED:
+            from drc.cmis.signals import update_document
+            update_document.send(sender=self.__class__, document=eio)
 
         return eio
 
@@ -222,6 +219,13 @@ class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
             del self.fields['titel']
             del self.fields['beschrijving']
             del self.fields['registratiedatum']
+
+    def create(self, validated_data):
+        oio = super().create(validated_data)
+        if settings.CMIS_BACKEND_ENABLED:
+            from drc.cmis.signals import creeer_zaakfolder_en_verplaats_document
+            creeer_zaakfolder_en_verplaats_document.send(sender=self.__class__, zaak_url=oio.object, document=oio.informatieobject)
+        return oio
 
     def save(self, **kwargs):
         # can't slap a transaction atomic on this, since ZRC/BRC query for the

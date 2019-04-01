@@ -10,25 +10,25 @@ import pytz
 from drc.datamodel.tests.factories import EnkelvoudigInformatieObjectFactory
 
 from ...exceptions import DocumentExistsError
-from .mixins import DMSMixin
+from ..mixins import DMSMixin
 
 
 @skipIf(not settings.CMIS_BACKEND_ENABLED, "Skipped if CMIS should not be active")
 class CMISClientTests(DMSMixin, TestCase):
     def test_maak_zaakdocument(self):
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam',
             ontvangstdatum=date(2017, 1, 1),
             beschrijving='Een beschrijving',
         )
 
-        # cmis_doc = self.client._get_cmis_doc(document)
-        cmis_doc = self.client.maak_zaakdocument(document, self.zaak_url)
+        # cmis_doc = self.cmis_client._get_cmis_doc(document)
+        cmis_doc = self.cmis_client.maak_zaakdocument(document, self.zaak_url)
 
         # verify that it identifications are unique
         with self.assertRaises(DocumentExistsError):
-            self.client.maak_zaakdocument(document, self.zaak_url)
+            self.cmis_client.maak_zaakdocument(document, self.zaak_url)
 
         document.refresh_from_db()
         # verify expected props
@@ -56,7 +56,7 @@ class CMISClientTests(DMSMixin, TestCase):
         )
 
     def test_maak_zaakdocument_met_gevulde_inhoud(self):
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
 
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam',
@@ -64,7 +64,7 @@ class CMISClientTests(DMSMixin, TestCase):
             beschrijving='Een beschrijving',
         )
 
-        cmis_doc = self.client.maak_zaakdocument_met_inhoud(document, self.zaak_url, stream=BytesIO(b'test'))
+        cmis_doc = self.cmis_client.maak_zaakdocument_met_inhoud(document, self.zaak_url, stream=BytesIO(b'test'))
         self.assertExpectedProps(cmis_doc, {
             'cmis:contentStreamFileName': 'testnaam',
             'cmis:contentStreamLength': 4,
@@ -91,7 +91,7 @@ class CMISClientTests(DMSMixin, TestCase):
 
     @override_settings(CMIS_SENDER_PROPERTY='zsdms:documentauteur')
     def test_maak_zaakdocument_met_sender_property(self):
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
 
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam',
@@ -99,7 +99,7 @@ class CMISClientTests(DMSMixin, TestCase):
             beschrijving='Een beschrijving',
         )
 
-        cmis_doc = self.client.maak_zaakdocument_met_inhoud(document, self.zaak_url, sender='maykin', stream=BytesIO(b'test'))
+        cmis_doc = self.cmis_client.maak_zaakdocument_met_inhoud(document, self.zaak_url, sender='maykin', stream=BytesIO(b'test'))
         self.assertExpectedProps(cmis_doc, {
             'cmis:contentStreamFileName': 'testnaam',
             'cmis:contentStreamLength': 4,
@@ -130,19 +130,19 @@ class CMISClientTests(DMSMixin, TestCase):
 
         Van het bestand uit het DMS wordt opgevraagd: inhoud, bestandsnaam.
         """
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(identificatie='123456')
-        cmis_doc = self.client.maak_zaakdocument(document, self.zaak_url)
+        cmis_doc = self.cmis_client.maak_zaakdocument(document, self.zaak_url)
 
         # empty by default
-        filename, file_obj = self.client.geef_inhoud(document)
+        filename, file_obj = self.cmis_client.geef_inhoud(document)
 
         self.assertEqual(filename, document.titel)
         self.assertEqual(file_obj.read(), b'')
 
         cmis_doc.setContentStream(BytesIO(b'some content'), 'text/plain')
 
-        filename, file_obj = self.client.geef_inhoud(document)
+        filename, file_obj = self.cmis_client.geef_inhoud(document)
 
         self.assertEqual(filename, document.titel)
         self.assertEqual(file_obj.read(), b'some content')
@@ -153,11 +153,11 @@ class CMISClientTests(DMSMixin, TestCase):
 
         Van het bestand uit het DMS wordt opgevraagd: inhoud, bestandsnaam.
         """
-        self.client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.build(identificatie='123456')
 
         # empty by default
-        filename, file_obj = self.client.geef_inhoud(document)
+        filename, file_obj = self.cmis_client.geef_inhoud(document)
 
         self.assertEqual(filename, None)
         self.assertEqual(file_obj.read(), b'')
@@ -178,13 +178,13 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', beschrijving='Een beschrijving'
         )
-        self.client.maak_zaakdocument(document)
+        self.cmis_client.maak_zaakdocument(document)
         document.refresh_from_db()
 
-        result = self.client.zet_inhoud(document, BytesIO(b'some content'), content_type='text/plain')
+        result = self.cmis_client.zet_inhoud(document, BytesIO(b'some content'), content_type='text/plain')
 
         self.assertIsNone(result)
-        filename, file_obj = self.client.geef_inhoud(document)
+        filename, file_obj = self.cmis_client.geef_inhoud(document)
         self.assertEqual(file_obj.read(), b'some content')
         self.assertEqual(filename, document.titel)
 
@@ -192,40 +192,40 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', beschrijving='Een beschrijving'
         )
-        zaak_folder = self.client.creeer_zaakfolder(self.zaak_url)
-        self.client.maak_zaakdocument(document)
+        zaak_folder = self.cmis_client.creeer_zaakfolder(self.zaak_url)
+        self.cmis_client.maak_zaakdocument(document)
         document.refresh_from_db()
 
-        result = self.client.relateer_aan_zaak(document, self.zaak_url)
+        result = self.cmis_client.relateer_aan_zaak(document, self.zaak_url)
         self.assertIsNone(result)
 
-        cmis_doc = self.client._get_cmis_doc(document)
+        cmis_doc = self.cmis_client._get_cmis_doc(document)
         parents = [parent.id for parent in cmis_doc.getObjectParents()]
         self.assertEqual(parents, [zaak_folder.id])
 
     def test_ontkoppel_zaakdocument(self):
-        cmis_folder = self.client.creeer_zaakfolder(self.zaak_url)
+        cmis_folder = self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', beschrijving='Een beschrijving'
         )
-        self.client.maak_zaakdocument(document, self.zaak_url)
-        result = self.client.ontkoppel_zaakdocument(document, self.zaak_url)
+        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
+        result = self.cmis_client.ontkoppel_zaakdocument(document, self.zaak_url)
         self.assertIsNone(result)
 
         # check that the zaakfolder is empty
         self.assertFalse(cmis_folder.getChildren())
 
     def test_verwijder_document(self):
-        zaak_folder = self.client.creeer_zaakfolder(self.zaak_url)
+        zaak_folder = self.cmis_client.creeer_zaakfolder(self.zaak_url)
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', beschrijving='Een beschrijving'
         )
-        self.client.maak_zaakdocument(document, self.zaak_url)
+        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
 
-        result = self.client.verwijder_document(document)
+        result = self.cmis_client.verwijder_document(document)
 
         self.assertIsNone(result)
         # check that it's gone
-        trash_folder, _ = self.client._get_or_create_folder(self.client.TRASH_FOLDER)
+        trash_folder, _ = self.cmis_client._get_or_create_folder(self.cmis_client.TRASH_FOLDER)
         self.assertEqual(len(trash_folder.getChildren()), 0)
         self.assertEqual(len(zaak_folder.getChildren()), 0)

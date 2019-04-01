@@ -3,7 +3,7 @@ import logging
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext as _
 
-from ..client import CMISDRCClient
+from ..client import default_client
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ class Command(BaseCommand):
     """
     Synchronizes changes in the DMS with our database by calling getContentChanges.
     """
-    help = _('Synchroniseert de zaakdocumenten in het ZS door wijzigingen op te vragen in het DMS.')
+    help = _('Synchroniseert de zaakdocumenten door wijzigingen op te vragen in het DMS.')
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -20,14 +20,13 @@ class Command(BaseCommand):
             action='store_true',
             dest='dryrun',
             default=False,
-            help='Retrieves all content changes from the DMS but doesn\'t update the ZS.',
+            help='Retrieves all content changes from the DMS but doesn\'t update the DRC.',
         )
 
     def handle(self, *args, **options):
         dryrun = options.get('dryrun', False)
 
-        client = CMISDRCClient()
-        result = client.sync(dryrun)
+        result = default_client.sync(dryrun)
 
         msg = ', '.join(['{}: {}'.format(k, v) for k, v in result.items()])
 

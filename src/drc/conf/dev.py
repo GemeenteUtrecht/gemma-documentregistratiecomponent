@@ -31,6 +31,11 @@ LOGGING['loggers'].update({
         'level': 'DEBUG',
         'propagate': True,
     },
+    'drc.cmis': {
+        'handlers': ['cmis', 'console'],
+        'level': 'INFO',
+        'propagate': False,
+    },
     'django': {
         'handlers': ['console'],
         'level': 'DEBUG',
@@ -69,6 +74,7 @@ ENVIRONMENT = 'development'
 # Django debug toolbar
 INSTALLED_APPS += [
     'debug_toolbar',
+    'django_extensions',
 ]
 MIDDLEWARE += [
     'debug_toolbar.middleware.DebugToolbarMiddleware',

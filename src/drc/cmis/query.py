@@ -1,3 +1,6 @@
+import uuid
+
+
 class CMISQuery:
     """
     Small, not feature-complete utility class for building CMIS queries with
@@ -24,6 +27,10 @@ class CMISQuery:
           * https://community.alfresco.com/docs/DOC-5898-cmis-query-language#Literals
           * http://docs.alfresco.com/community/concepts/rm-searchsyntax-literals.html
         """
-        value = value.replace("'", "\\'")
-        value = value.replace('"', '\\"')
+        # if isinstance(value, uuid.UUID):
+        #     value = str(value).replace('-', '').replace('-', '').replace('-', '').replace('-', '')
+
+        if isinstance(value, str):
+            value = value.replace("'", "\\'")
+            value = value.replace('"', '\\"')
         return value
