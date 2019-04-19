@@ -7,14 +7,20 @@ See:
 """
 from unittest.mock import patch
 
+# import factory
 from rest_framework import status
 from rest_framework.test import APITestCase
 from vng_api_common.tests import TypeCheckMixin, get_operation_url
 
+from drc.cmis.tests.mixins import DMSMixin
 from drc.datamodel.tests.factories import ObjectInformatieObjectFactory
 
+# from django.db.models import signals
 
-class US154Tests(TypeCheckMixin, APITestCase):
+
+
+
+class US154Tests(DMSMixin, TypeCheckMixin, APITestCase):
 
     def setUp(self):
         super().setUp()

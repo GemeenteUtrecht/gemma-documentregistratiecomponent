@@ -369,3 +369,8 @@ IS_HTTPS = os.getenv('IS_HTTPS', '1').lower() in ['true', '1', 'yes']
 
 # settings for sending notifications
 NOTIFICATIONS_KANAAL = 'documenten'
+
+DRC_BUILDIN_BACKEND = True
+DRC_STORAGE_BACKENDS = [
+    'drc.cmis.backend.CMISDRCStorageBackend'
+]

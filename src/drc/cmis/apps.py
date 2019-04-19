@@ -6,10 +6,11 @@ from django.core.checks import Error, Tags, register
 class CMISConfig(AppConfig):
     name = 'drc.cmis'
     verbose_name = 'CMIS'
+    app_name = 'cmis'
 
     def ready(self):
         if settings.CMIS_BACKEND_ENABLED:
-            from .receivers import handle_creeer_document
+            from drc.cmis import receivers
             register(check_cmis, Tags.compatibility, deploy=True)
 
 

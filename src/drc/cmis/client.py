@@ -30,6 +30,7 @@ class CMISDRCClient(DRCClient):
     DRC client implementation using the CMIS protocol.
     """
     document_query = CMISQuery("SELECT * FROM zsdms:document WHERE zsdms:documentIdentificatie = '%s'")
+    TEMP_FOLDER_NAME = 'enkelvoudiginformatieobjecten'
 
     def __init__(self, url=None, user=None, password=None):
         """
@@ -105,8 +106,8 @@ class CMISDRCClient(DRCClient):
                 raise DocumentConflictException("Foutieve 'pwc id' meegestuurd")
         return doc
 
-    def _build_cmis_doc_properties(self, document, filename=None):
-        properties = document.get_cmis_properties()
+    def _build_cmis_doc_properties(self, connection, filename=None):
+        properties = connection.get_cmis_properties()
         properties['cmis:objectTypeId'] = CMISObjectType.edc
         if filename is not None:
             properties['cmis:name'] = filename
@@ -159,7 +160,7 @@ class CMISDRCClient(DRCClient):
         """
         return self.maak_zaakdocument_met_inhoud(document, zaak_url, filename, sender)
 
-    def maak_zaakdocument_met_inhoud(self, document, zaak_url=None, filename=None, sender=None, stream=None, content_type=None):
+    def maak_zaakdocument_met_inhoud(self, connection, zaak_url=None, filename=None, sender=None, stream=None, content_type=None):
         """
         :param zaak_url: TODO
         :param document: EnkelvoudigInformatieObject instantie die de
@@ -174,11 +175,11 @@ class CMISDRCClient(DRCClient):
             identificatie bestaat, binnen de zaakfolder.
         """
         try:
-            self._get_cmis_doc(document)
+            self._get_cmis_doc(connection.enkelvoudiginformatieobject)
         except DocumentDoesNotExistError:
             pass
         else:
-            raise DocumentExistsError(('Document identificatie {} is niet uniek').format(document.identificatie))
+            raise DocumentExistsError(('Document identificatie {} is niet uniek').format(connection.enkelvoudiginformatieobject.identificatie))
 
         if stream is None:
             stream = BytesIO()
@@ -187,16 +188,14 @@ class CMISDRCClient(DRCClient):
         else:
             zaakfolder = self._get_zaakfolder(zaak_url)
 
-        properties = self._build_cmis_doc_properties(document, filename=filename)
+        properties = self._build_cmis_doc_properties(connection, filename=filename)
         if settings.CMIS_SENDER_PROPERTY:
             properties[settings.CMIS_SENDER_PROPERTY] = sender
 
         _doc = self._repo.createDocument(
-            name=document.titel, properties=properties, contentFile=stream,
+            name=connection.enkelvoudiginformatieobject.titel, properties=properties, contentFile=stream,
             contentType=content_type, parentFolder=zaakfolder
         )
-        document._object_id = _doc.getObjectId().rsplit(';')[0]
-        document.save(update_fields=['_object_id'])
         return _doc
 
     def geef_inhoud(self, document):
@@ -237,6 +236,7 @@ class CMISDRCClient(DRCClient):
         current_properties = cmis_doc.properties
         new_properties = self._build_cmis_doc_properties(document, filename=inhoud.bestandsnaam if inhoud else None)
         diff_properties = {key: value for key, value in new_properties.items() if current_properties.get(key) != new_properties.get(key)}
+        print('DIFFPROPERTIES', diff_properties)
         try:
             cmis_doc.updateProperties(diff_properties)
         except UpdateConflictException as exc:

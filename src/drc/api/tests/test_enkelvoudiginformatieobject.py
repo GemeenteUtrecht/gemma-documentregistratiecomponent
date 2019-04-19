@@ -74,7 +74,7 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
         expected_response = content.copy()
         expected_response.update({
             'url': f"http://testserver{expected_url}",
-            'inhoud': f"http://testserver{stored_object.inhoud.url}",
+            'inhoud': f"http://testserver{stored_object.get_inhoud_url()}",
             'vertrouwelijkheidaanduiding': 'openbaar',
             'bestandsomvang': stored_object.inhoud.size,
             'integriteit': {
@@ -91,6 +91,7 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
             'indicatieGebruiksrecht': None,
             'status': '',
         })
+        print(response.json())
         self.assertEqual(response.json(), expected_response)
 
     def test_read(self):
@@ -112,13 +113,13 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
             'identificatie': test_object.identificatie,
             'bronorganisatie': test_object.bronorganisatie,
             'creatiedatum': '2018-06-27',
-            'titel': 'some titel',
+            'titel': test_object.titel,
             'auteur': 'some auteur',
             'status': '',
             'formaat': 'some formaat',
             'taal': 'dut',
             'bestandsnaam': '',
-            'inhoud': f'http://testserver{test_object.inhoud.url}',
+            'inhoud': f'http://testserver{test_object.get_inhoud_url()}',
             'bestandsomvang': test_object.inhoud.size,
             'link': '',
             'beschrijving': '',
@@ -262,7 +263,7 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
 
         update_content = {
-            'identificatie': uuid.uuid4().hex,
+            'identificatie': content.get('identificatie'),
             'bronorganisatie': '159351741',
             'creatiedatum': '2018-06-27',
             'titel': 'detailed summary',
@@ -280,5 +281,49 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
         self.assertEqual(EnkelvoudigInformatieObject.objects.count(), 1)
         enkelvoudig_informatie = EnkelvoudigInformatieObject.objects.first()
         object_url = reverse_lazy('enkelvoudiginformatieobject-detail', kwargs={'version': '1', 'uuid': enkelvoudig_informatie.uuid})
-        response = self.client.put(object_url, content)
+        response = self.client.put(object_url, update_content)
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+
+    @override_settings(LINK_FETCHER='zds_schema.mocks.link_fetcher_200')
+    def test_read_response(self):
+        self.maxDiff = None
+        content = {
+            'identificatie': uuid.uuid4().hex,
+            'bronorganisatie': '159351741',
+            'creatiedatum': '2018-06-27',
+            'titel': 'detailed summary',
+            'auteur': 'test_auteur',
+            'formaat': 'txt',
+            'taal': 'eng',
+            'bestandsnaam': 'dummy.txt',
+            'inhoud': b64encode(b'some file content').decode('utf-8'),
+            'link': 'http://een.link',
+            'beschrijving': 'test_beschrijving',
+            'informatieobjecttype': 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1',
+            'vertrouwelijkheidaanduiding': 'openbaar',
+        }
+
+        # Send to the API
+        response = self.client.post(self.list_url, content)
+        # Test response
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(EnkelvoudigInformatieObject.objects.count(), 1)
+
+        enkelvoudig_informatie = EnkelvoudigInformatieObject.objects.first()
+        object_url = reverse_lazy('enkelvoudiginformatieobject-detail', kwargs={'version': '1', 'uuid': enkelvoudig_informatie.uuid})
+        response = self.client.get(object_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data, {
+            'url': 'http://testserver/api/v1/enkelvoudiginformatieobjecten/{}'.format(enkelvoudig_informatie.uuid),
+            'identificatie': enkelvoudig_informatie.identificatie, 'bronorganisatie': '159351741',
+            'creatiedatum': '2018-06-27', 'titel': 'detailed summary',
+            'vertrouwelijkheidaanduiding': 'openbaar', 'auteur': 'test_auteur', 'status': '',
+            'formaat': 'txt', 'taal': 'eng', 'bestandsnaam': 'dummy.txt',
+            # 'inhoud': 'http://testserver{}'.format(enkelvoudig_informatie.inhoud.url),
+            'inhoud': 'http://testserver/cmis/content/{}'.format(enkelvoudig_informatie.uuid),
+            'bestandsomvang': 17, 'link': 'http://een.link', 'beschrijving': 'test_beschrijving',
+            'ontvangstdatum': None, 'verzenddatum': None, 'indicatie_gebruiksrecht': None,
+            'ondertekening': {'soort': '', 'datum': None}, 'integriteit': {
+                'algoritme': '', 'waarde': '', 'datum': None
+            }, 'informatieobjecttype': 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1'
+        })

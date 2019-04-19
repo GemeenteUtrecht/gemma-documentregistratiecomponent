@@ -2,6 +2,7 @@ import uuid as _uuid
 
 from django.conf import settings
 from django.db import models, transaction
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from vng_api_common.constants import ObjectTypes
@@ -10,9 +11,6 @@ from vng_api_common.fields import (
     LanguageField, RSINField, VertrouwelijkheidsAanduidingField
 )
 from vng_api_common.validators import alphanumeric_excluding_diacritic
-
-from drc.cmis.client import default_client
-from drc.cmis.models import CMISMixin
 
 from .constants import (
     ChecksumAlgoritmes, OndertekeningSoorten, RelatieAarden, Statussen
@@ -125,7 +123,7 @@ class InformatieObject(models.Model):
         abstract = True
 
     def __str__(self) -> str:
-        return self.identificatie
+        return str(self.identificatie)
 
     def clean(self):
         super().clean()
@@ -137,7 +135,7 @@ class InformatieObject(models.Model):
     })
 
 
-class EnkelvoudigInformatieObject(CMISMixin, InformatieObject):
+class EnkelvoudigInformatieObject(InformatieObject):
     # TODO: validate mime types
     formaat = models.CharField(
         max_length=255, blank=True,
@@ -182,39 +180,25 @@ class EnkelvoudigInformatieObject(CMISMixin, InformatieObject):
         'datum': integriteit_datum,
     })
 
-    _object_id = models.TextField(help_text='CMIS storage object id, internal use only', blank=True)
+    def save(self, backend_save=False, *args, **kwargs):
+        if backend_save:
+            return super().save(*args, **kwargs)
 
-    CMIS_MAPPING = {
-        'zsdms:documenttaal': 'taal',
-        'zsdms:documentLink': 'link',
-        'cmis:name': 'titel',
-        'zsdms:documentIdentificatie': 'identificatie',
-        'zsdms:documentcreatiedatum': 'creatiedatum',
-        'zsdms:documentontvangstdatum': 'ontvangstdatum',
-        'zsdms:documentbeschrijving': 'beschrijving',
-        'zsdms:documentverzenddatum': 'verzenddatum',
-        'zsdms:vertrouwelijkaanduiding': 'vertrouwelijkheidaanduiding',
-        'zsdms:documentauteur': 'auteur',
-        'zsdms:documentstatus': 'status',
-        'zsdms:dct.omschrijving': 'informatieobjecttype',
-    }
+        from drc.backend import drc_storage_adapter
+        # Work with the backends
+        # Having an pk means that the object is already created and needs to be updated.
+        if self.pk:
+            drc_storage_adapter.update_document(self, updated_values={})
+        else:
+            drc_storage_adapter.create_document(self)
 
-    def update_cmis_properties(self, new_cmis_properties, commit=False):
-        if not self.pk:
-            raise ValueError('Cannot update CMIS properties on unsaved instance.')
-
-        updated_objects = set()
-
-        for cmis_property, _field_name in self.CMIS_MAPPING.items():
-            if cmis_property not in new_cmis_properties:
-                continue
-            updated_objects.add(self)
-
-        if commit:
-            for obj in updated_objects:
-                obj.save()
-
-        return updated_objects
+        # Small secret, Only remove the file content/link for now. We will still save the document...
+        # If buildin backend is used. DO NOT SAVE! Will override the document.s
+        # TODO: Also empty all the other values that should be saved in the other backend.
+        if not settings.DRC_BUILDIN_BACKEND:
+            self.inhoud = None
+            self.link = None
+            return super().save(*args, **kwargs)
 
 
 class Gebruiksrechten(models.Model):

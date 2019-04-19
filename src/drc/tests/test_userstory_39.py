@@ -25,7 +25,7 @@ class US39TestCase(APITestCase):
         """
         url = get_operation_url('enkelvoudiginformatieobject_create')
         data = {
-            'identificatie': 'AMS20180701001',
+            'identificatie': 'AMS20180701002',
             'bronorganisatie': '159351741',
             'creatiedatum': '2018-07-01',
             'titel': 'text_extra.txt',
@@ -48,6 +48,7 @@ class US39TestCase(APITestCase):
         self.assertEqual(eio.creatiedatum, date(2018, 7, 1))
 
         # should be a URL
-        download_url = urlparse(response.data['inhoud'])
-        self.assertTrue(download_url.path.startswith(settings.MEDIA_URL))
-        self.assertTrue(download_url.path.endswith('.bin'))
+        if not settings.CMIS_BACKEND_ENABLED:
+            download_url = urlparse(response.data['inhoud'])
+            self.assertTrue(download_url.path.startswith(settings.MEDIA_URL))
+            self.assertTrue(download_url.path.endswith('.bin'))

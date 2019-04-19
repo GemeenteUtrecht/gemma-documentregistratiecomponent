@@ -3,8 +3,10 @@ from io import BytesIO
 from unittest import skipIf
 
 from django.conf import settings
+from django.db.models import signals
 from django.test import TestCase, override_settings
 
+import factory
 import pytz
 
 from drc.datamodel.tests.factories import EnkelvoudigInformatieObjectFactory
@@ -14,6 +16,7 @@ from ..mixins import DMSMixin
 
 
 @skipIf(not settings.CMIS_BACKEND_ENABLED, "Skipped if CMIS should not be active")
+@factory.django.mute_signals(signals.post_save)
 class CMISClientTests(DMSMixin, TestCase):
     def test_maak_zaakdocument(self):
         self.cmis_client.creeer_zaakfolder(self.zaak_url)

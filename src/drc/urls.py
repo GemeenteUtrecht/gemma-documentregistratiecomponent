@@ -17,6 +17,11 @@ urlpatterns = [
     path('ref/', include('vng_api_common.notifications.urls')),
 ]
 
+if 'drc.cmis' in settings.INSTALLED_APPS:
+    urlpatterns += [
+        path('cmis/', include(('drc.cmis.urls', 'cmis'), namespace='cmis'))
+    ]
+
 # NOTE: The staticfiles_urlpatterns also discovers static files (ie. no need to run collectstatic). Both the static
 # folder and the media folder are only served via Django if DEBUG = True.
 urlpatterns += staticfiles_urlpatterns() + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

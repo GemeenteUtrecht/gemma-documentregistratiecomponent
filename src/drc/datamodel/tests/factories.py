@@ -5,21 +5,23 @@ from django.utils import timezone
 
 import factory
 import factory.fuzzy
+from faker import Faker
 from vng_api_common.constants import ObjectTypes, VertrouwelijkheidsAanduiding
 
 from ..constants import RelatieAarden
 
+fake = Faker()
 
-# @factory.django.mute_signals(signals.pre_save, signals.post_save)
+
 class EnkelvoudigInformatieObjectFactory(factory.django.DjangoModelFactory):
     identificatie = factory.Sequence(lambda n: '{}{}'.format(uuid.uuid4().hex, n))
     bronorganisatie = factory.Faker('ssn', locale='nl_NL')
     creatiedatum = datetime.date(2018, 6, 27)
-    titel = 'some titel'
+    titel = factory.Sequence(lambda n: 'some titel - {}'.format(n))
     auteur = 'some auteur'
     formaat = 'some formaat'
     taal = 'dut'
-    inhoud = factory.django.FileField(data=b'some data', filename='file.bin')
+    inhoud = factory.django.FileField(data=fake.word().encode('utf-8'), filename=fake.file_name())
     informatieobjecttype = 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1'
     vertrouwelijkheidaanduiding = VertrouwelijkheidsAanduiding.openbaar
 
@@ -27,7 +29,6 @@ class EnkelvoudigInformatieObjectFactory(factory.django.DjangoModelFactory):
         model = 'datamodel.EnkelvoudigInformatieObject'
 
 
-# @factory.django.mute_signals(signals.pre_save, signals.post_save)
 class ObjectInformatieObjectFactory(factory.django.DjangoModelFactory):
 
     informatieobject = factory.SubFactory(EnkelvoudigInformatieObjectFactory)

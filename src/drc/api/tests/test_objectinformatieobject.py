@@ -59,10 +59,6 @@ class ObjectInformatieObjectAPITests(DMSMixin, APITestCase):
             'uuid': enkelvoudig_informatie.uuid,
         })
 
-        if settings.CMIS_BACKEND_ENABLED:
-            from drc.cmis.signals import creeer_document
-            creeer_document.send(sender=self.__class__, document=enkelvoudig_informatie)
-
         content = {
             'informatieobject': 'http://testserver' + enkelvoudig_informatie_url,
             'object': ZAAK,
@@ -104,10 +100,6 @@ class ObjectInformatieObjectAPITests(DMSMixin, APITestCase):
             'uuid': enkelvoudig_informatie.uuid,
         })
 
-        if settings.CMIS_BACKEND_ENABLED:
-            from drc.cmis.signals import creeer_document
-            creeer_document.send(sender=self.__class__, document=enkelvoudig_informatie)
-
         content = {
             'informatieobject': 'http://testserver' + enkelvoudig_informatie_url,
             'object': BESLUIT,
@@ -146,10 +138,6 @@ class ObjectInformatieObjectAPITests(DMSMixin, APITestCase):
             'version': '1',
             'uuid': enkelvoudig_informatie.uuid,
         })
-
-        if settings.CMIS_BACKEND_ENABLED:
-            from drc.cmis.signals import creeer_document
-            creeer_document.send(sender=self.__class__, document=enkelvoudig_informatie)
 
         content = {
             'informatieobject': 'http://testserver' + enkelvoudig_informatie_url,

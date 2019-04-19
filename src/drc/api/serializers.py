@@ -2,6 +2,7 @@
 Serializers of the Document Registratie Component REST API
 """
 from django.conf import settings
+from django.urls import reverse
 from django.utils.encoding import force_text
 from django.utils.module_loading import import_string
 from django.utils.translation import ugettext_lazy as _
@@ -103,6 +104,15 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         }
         validators = [StatusValidator()]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['inhoud'] = self.get_file(instance)
+        return data
+
+    def get_file(self, obj):
+        from drc.backend import drc_storage_adapter
+        return drc_storage_adapter.get_document(obj)
+
     def _get_informatieobjecttype(self, informatieobjecttype_url: str) -> dict:
         if not hasattr(self, 'informatieobjecttype'):
             # dynamic so that it can be mocked in tests easily
@@ -137,6 +147,7 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         """
         integriteit = validated_data.pop('integriteit', None)
         ondertekening = validated_data.pop('ondertekening', None)
+
         # add vertrouwelijkheidaanduiding
         if 'vertrouwelijkheidaanduiding' not in validated_data:
             informatieobjecttype = self._get_informatieobjecttype(validated_data['informatieobjecttype'])
@@ -145,11 +156,7 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         eio = super().create(validated_data)
         eio.integriteit = integriteit
         eio.ondertekening = ondertekening
-        eio.save()
-
-        if settings.CMIS_BACKEND_ENABLED:
-            from drc.cmis.signals import creeer_document
-            creeer_document.send(sender=self.__class__, document=eio)
+        eio.save(backend_save=True)
 
         return eio
 
@@ -160,10 +167,6 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         instance.integriteit = validated_data.pop('integriteit', None)
         instance.ondertekening = validated_data.pop('ondertekening', None)
         eio = super().update(instance, validated_data)
-
-        if settings.CMIS_BACKEND_ENABLED:
-            from drc.cmis.signals import update_document
-            update_document.send(sender=self.__class__, document=eio)
 
         return eio
 
@@ -219,13 +222,6 @@ class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
             del self.fields['titel']
             del self.fields['beschrijving']
             del self.fields['registratiedatum']
-
-    def create(self, validated_data):
-        oio = super().create(validated_data)
-        if settings.CMIS_BACKEND_ENABLED:
-            from drc.cmis.signals import creeer_zaakfolder_en_verplaats_document
-            creeer_zaakfolder_en_verplaats_document.send(sender=self.__class__, zaak_url=oio.object, document=oio.informatieobject)
-        return oio
 
     def save(self, **kwargs):
         # can't slap a transaction atomic on this, since ZRC/BRC query for the

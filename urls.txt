@@ -1,0 +1,102 @@
+URL                                                                    | Module                                               | Name                                                     | Decorator
+-----------------------------------------------------------------------+------------------------------------------------------+----------------------------------------------------------+-
+/                                                                      | django.views.generic.base.TemplateView               |                                                          | 
+/__debug__/render_panel/                                               | debug_toolbar.views.render_panel                     | djdt:render_panel                                        | 
+/__debug__/sql_explain/                                                | debug_toolbar.panels.sql.views.sql_explain           | djdt:sql_explain                                         | 
+/__debug__/sql_profile/                                                | debug_toolbar.panels.sql.views.sql_profile           | djdt:sql_profile                                         | 
+/__debug__/sql_select/                                                 | debug_toolbar.panels.sql.views.sql_select            | djdt:sql_select                                          | 
+/__debug__/template_source/                                            | debug_toolbar.panels.templates.views.template_source | djdt:template_source                                     | 
+/admin/                                                                | django.contrib.admin.sites.index                     | admin:index                                              | 
+/admin/<app_label>/                                                    | django.contrib.admin.sites.app_index                 | admin:app_list                                           | 
+/admin/accounts/user/                                                  | django.contrib.admin.options.changelist_view         | admin:accounts_user_changelist                           | 
+/admin/accounts/user/<id>/password/                                    | django.contrib.auth.admin.user_change_password       | admin:auth_user_password_change                          | 
+/admin/accounts/user/<path:object_id>/                                 | django.views.generic.base.RedirectView               |                                                          | 
+/admin/accounts/user/<path:object_id>/change/                          | django.contrib.admin.options.change_view             | admin:accounts_user_change                               | 
+/admin/accounts/user/<path:object_id>/delete/                          | django.contrib.admin.options.delete_view             | admin:accounts_user_delete                               | 
+/admin/accounts/user/<path:object_id>/history/                         | django.contrib.admin.options.history_view            | admin:accounts_user_history                              | 
+/admin/accounts/user/add/                                              | django.contrib.auth.admin.add_view                   | admin:accounts_user_add                                  | 
+/admin/accounts/user/autocomplete/                                     | django.contrib.admin.options.autocomplete_view       | admin:accounts_user_autocomplete                         | 
+/admin/auth/group/                                                     | django.contrib.admin.options.changelist_view         | admin:auth_group_changelist                              | 
+/admin/auth/group/<path:object_id>/                                    | django.views.generic.base.RedirectView               |                                                          | 
+/admin/auth/group/<path:object_id>/change/                             | django.contrib.admin.options.change_view             | admin:auth_group_change                                  | 
+/admin/auth/group/<path:object_id>/delete/                             | django.contrib.admin.options.delete_view             | admin:auth_group_delete                                  | 
+/admin/auth/group/<path:object_id>/history/                            | django.contrib.admin.options.history_view            | admin:auth_group_history                                 | 
+/admin/auth/group/add/                                                 | django.contrib.admin.options.add_view                | admin:auth_group_add                                     | 
+/admin/auth/group/autocomplete/                                        | django.contrib.admin.options.autocomplete_view       | admin:auth_group_autocomplete                            | 
+/admin/axes/accessattempt/                                             | django.contrib.admin.options.changelist_view         | admin:axes_accessattempt_changelist                      | 
+/admin/axes/accessattempt/<path:object_id>/                            | django.views.generic.base.RedirectView               |                                                          | 
+/admin/axes/accessattempt/<path:object_id>/change/                     | django.contrib.admin.options.change_view             | admin:axes_accessattempt_change                          | 
+/admin/axes/accessattempt/<path:object_id>/delete/                     | django.contrib.admin.options.delete_view             | admin:axes_accessattempt_delete                          | 
+/admin/axes/accessattempt/<path:object_id>/history/                    | django.contrib.admin.options.history_view            | admin:axes_accessattempt_history                         | 
+/admin/axes/accessattempt/add/                                         | django.contrib.admin.options.add_view                | admin:axes_accessattempt_add                             | 
+/admin/axes/accessattempt/autocomplete/                                | django.contrib.admin.options.autocomplete_view       | admin:axes_accessattempt_autocomplete                    | 
+/admin/axes/accesslog/                                                 | django.contrib.admin.options.changelist_view         | admin:axes_accesslog_changelist                          | 
+/admin/axes/accesslog/<path:object_id>/                                | django.views.generic.base.RedirectView               |                                                          | 
+/admin/axes/accesslog/<path:object_id>/change/                         | django.contrib.admin.options.change_view             | admin:axes_accesslog_change                              | 
+/admin/axes/accesslog/<path:object_id>/delete/                         | django.contrib.admin.options.delete_view             | admin:axes_accesslog_delete                              | 
+/admin/axes/accesslog/<path:object_id>/history/                        | django.contrib.admin.options.history_view            | admin:axes_accesslog_history                             | 
+/admin/axes/accesslog/add/                                             | django.contrib.admin.options.add_view                | admin:axes_accesslog_add                                 | 
+/admin/axes/accesslog/autocomplete/                                    | django.contrib.admin.options.autocomplete_view       | admin:axes_accesslog_autocomplete                        | 
+/admin/datamodel/enkelvoudiginformatieobject/                          | django.contrib.admin.options.changelist_view         | admin:datamodel_enkelvoudiginformatieobject_changelist   | 
+/admin/datamodel/enkelvoudiginformatieobject/<path:object_id>/         | django.views.generic.base.RedirectView               |                                                          | 
+/admin/datamodel/enkelvoudiginformatieobject/<path:object_id>/change/  | django.contrib.admin.options.change_view             | admin:datamodel_enkelvoudiginformatieobject_change       | 
+/admin/datamodel/enkelvoudiginformatieobject/<path:object_id>/delete/  | django.contrib.admin.options.delete_view             | admin:datamodel_enkelvoudiginformatieobject_delete       | 
+/admin/datamodel/enkelvoudiginformatieobject/<path:object_id>/history/ | django.contrib.admin.options.history_view            | admin:datamodel_enkelvoudiginformatieobject_history      | 
+/admin/datamodel/enkelvoudiginformatieobject/add/                      | django.contrib.admin.options.add_view                | admin:datamodel_enkelvoudiginformatieobject_add          | 
+/admin/datamodel/enkelvoudiginformatieobject/autocomplete/             | django.contrib.admin.options.autocomplete_view       | admin:datamodel_enkelvoudiginformatieobject_autocomplete | 
+/admin/datamodel/objectinformatieobject/                               | django.contrib.admin.options.changelist_view         | admin:datamodel_objectinformatieobject_changelist        | 
+/admin/datamodel/objectinformatieobject/<path:object_id>/              | django.views.generic.base.RedirectView               |                                                          | 
+/admin/datamodel/objectinformatieobject/<path:object_id>/change/       | django.contrib.admin.options.change_view             | admin:datamodel_objectinformatieobject_change            | 
+/admin/datamodel/objectinformatieobject/<path:object_id>/delete/       | django.contrib.admin.options.delete_view             | admin:datamodel_objectinformatieobject_delete            | 
+/admin/datamodel/objectinformatieobject/<path:object_id>/history/      | django.contrib.admin.options.history_view            | admin:datamodel_objectinformatieobject_history           | 
+/admin/datamodel/objectinformatieobject/add/                           | django.contrib.admin.options.add_view                | admin:datamodel_objectinformatieobject_add               | 
+/admin/datamodel/objectinformatieobject/autocomplete/                  | django.contrib.admin.options.autocomplete_view       | admin:datamodel_objectinformatieobject_autocomplete      | 
+/admin/jsi18n/                                                         | django.contrib.admin.sites.i18n_javascript           | admin:jsi18n                                             | 
+/admin/login/                                                          | django.contrib.admin.sites.login                     | admin:login                                              | 
+/admin/logout/                                                         | django.contrib.admin.sites.logout                    | admin:logout                                             | 
+/admin/password_change/                                                | django.contrib.admin.sites.password_change           | admin:password_change                                    | 
+/admin/password_change/done/                                           | django.contrib.admin.sites.password_change_done      | admin:password_change_done                               | 
+/admin/r/<int:content_type_id>/<path:object_id>/                       | django.contrib.contenttypes.views.shortcut           | admin:view_on_site                                       | 
+/admin/sites/site/                                                     | django.contrib.admin.options.changelist_view         | admin:sites_site_changelist                              | 
+/admin/sites/site/<path:object_id>/                                    | django.views.generic.base.RedirectView               |                                                          | 
+/admin/sites/site/<path:object_id>/change/                             | django.contrib.admin.options.change_view             | admin:sites_site_change                                  | 
+/admin/sites/site/<path:object_id>/delete/                             | django.contrib.admin.options.delete_view             | admin:sites_site_delete                                  | 
+/admin/sites/site/<path:object_id>/history/                            | django.contrib.admin.options.history_view            | admin:sites_site_history                                 | 
+/admin/sites/site/add/                                                 | django.contrib.admin.options.add_view                | admin:sites_site_add                                     | 
+/admin/sites/site/autocomplete/                                        | django.contrib.admin.options.autocomplete_view       | admin:sites_site_autocomplete                            | 
+/admin/zds_schema/apicredential/                                       | django.contrib.admin.options.changelist_view         | admin:zds_schema_apicredential_changelist                | 
+/admin/zds_schema/apicredential/<path:object_id>/                      | django.views.generic.base.RedirectView               |                                                          | 
+/admin/zds_schema/apicredential/<path:object_id>/change/               | django.contrib.admin.options.change_view             | admin:zds_schema_apicredential_change                    | 
+/admin/zds_schema/apicredential/<path:object_id>/delete/               | django.contrib.admin.options.delete_view             | admin:zds_schema_apicredential_delete                    | 
+/admin/zds_schema/apicredential/<path:object_id>/history/              | django.contrib.admin.options.history_view            | admin:zds_schema_apicredential_history                   | 
+/admin/zds_schema/apicredential/add/                                   | django.contrib.admin.options.add_view                | admin:zds_schema_apicredential_add                       | 
+/admin/zds_schema/apicredential/autocomplete/                          | django.contrib.admin.options.autocomplete_view       | admin:zds_schema_apicredential_autocomplete              | 
+/admin/zds_schema/jwtsecret/                                           | django.contrib.admin.options.changelist_view         | admin:zds_schema_jwtsecret_changelist                    | 
+/admin/zds_schema/jwtsecret/<path:object_id>/                          | django.views.generic.base.RedirectView               |                                                          | 
+/admin/zds_schema/jwtsecret/<path:object_id>/change/                   | django.contrib.admin.options.change_view             | admin:zds_schema_jwtsecret_change                        | 
+/admin/zds_schema/jwtsecret/<path:object_id>/delete/                   | django.contrib.admin.options.delete_view             | admin:zds_schema_jwtsecret_delete                        | 
+/admin/zds_schema/jwtsecret/<path:object_id>/history/                  | django.contrib.admin.options.history_view            | admin:zds_schema_jwtsecret_history                       | 
+/admin/zds_schema/jwtsecret/add/                                       | django.contrib.admin.options.add_view                | admin:zds_schema_jwtsecret_add                           | 
+/admin/zds_schema/jwtsecret/autocomplete/                              | django.contrib.admin.options.autocomplete_view       | admin:zds_schema_jwtsecret_autocomplete                  | 
+/api/v<version>/                                                       | rest_framework.routers.APIRootView                   | api-root                                                 | 
+/api/v<version>/\.<format>/                                            | rest_framework.routers.APIRootView                   | api-root                                                 | 
+/api/v<version>/enkelvoudiginformatieobjecten                          | drc.api.viewsets.EnkelvoudigInformatieObjectViewSet  | enkelvoudiginformatieobject-list                         | 
+/api/v<version>/enkelvoudiginformatieobjecten/<uuid>                   | drc.api.viewsets.EnkelvoudigInformatieObjectViewSet  | enkelvoudiginformatieobject-detail                       | 
+/api/v<version>/enkelvoudiginformatieobjecten/<uuid>\.<format>/        | drc.api.viewsets.EnkelvoudigInformatieObjectViewSet  | enkelvoudiginformatieobject-detail                       | 
+/api/v<version>/enkelvoudiginformatieobjecten\.<format>/               | drc.api.viewsets.EnkelvoudigInformatieObjectViewSet  | enkelvoudiginformatieobject-list                         | 
+/api/v<version>/gebruiksrechten                                        | drc.api.viewsets.GebruiksrechtenViewSet              | gebruiksrechten-list                                     | 
+/api/v<version>/gebruiksrechten/<uuid>                                 | drc.api.viewsets.GebruiksrechtenViewSet              | gebruiksrechten-detail                                   | 
+/api/v<version>/gebruiksrechten/<uuid>\.<format>/                      | drc.api.viewsets.GebruiksrechtenViewSet              | gebruiksrechten-detail                                   | 
+/api/v<version>/gebruiksrechten\.<format>/                             | drc.api.viewsets.GebruiksrechtenViewSet              | gebruiksrechten-list                                     | 
+/api/v<version>/jwtsecret/                                             | zds_schema.api.views.CreateJWTSecretView             | jwtsecret-create                                         | 
+/api/v<version>/objectinformatieobjecten                               | drc.api.viewsets.ObjectInformatieObjectViewSet       | objectinformatieobject-list                              | 
+/api/v<version>/objectinformatieobjecten/<uuid>                        | drc.api.viewsets.ObjectInformatieObjectViewSet       | objectinformatieobject-detail                            | 
+/api/v<version>/objectinformatieobjecten/<uuid>\.<format>/             | drc.api.viewsets.ObjectInformatieObjectViewSet       | objectinformatieobject-detail                            | 
+/api/v<version>/objectinformatieobjecten\.<format>/                    | drc.api.viewsets.ObjectInformatieObjectViewSet       | objectinformatieobject-list                              | 
+/api/v<version>/schema/                                                | zds_schema.schema.SchemaView                         | schema-redoc                                             | 
+/api/v<version>/schema/openapi<format>                                 | zds_schema.schema.SchemaView                         | schema-json                                              | 
+/cmis/content/<str:inhoud>                                             | drc.cmis.views.DownloadFileView                      | cmis:cmis-document-download                              | 
+/media\/<path>                                                         | django.views.static.serve                            |                                                          | 
+/ref/fouten/<exception_class>/                                         | zds_schema.views.ErrorDetailView                     | zds_schema:error-detail                                  | 
+/ref/scopes/                                                           | zds_schema.views.ScopesView                          | zds_schema:scopes                                        | 
+/static\/<path>                                                        | django.contrib.staticfiles.views.serve               |                                                          | 

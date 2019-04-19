@@ -21,7 +21,6 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
 
         result = self.cmis_client.is_locked(document)
         self.assertFalse(result)
@@ -31,7 +30,6 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
         self.cmis_client.checkout(document)
 
         result = self.cmis_client.is_locked(document)
@@ -51,7 +49,6 @@ class CMISClientTests(DMSMixin, TestCase):
         inhoud = BinaireInhoud(b'leaky abstraction...', filename='bestand.txt')
 
         # flow
-        self.cmis_client.maak_zaakdocument(document, self.zaak_url)  # create empty doc
         checkout_id, _checkout_by = self.cmis_client.checkout(document)  # lock for update
         # TODO: Broken here. Test not possible
         with self.assertRaises(DocumentConflictException):

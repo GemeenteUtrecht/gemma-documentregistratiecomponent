@@ -21,10 +21,9 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        cmis_doc = self.cmis_client.maak_zaakdocument(document, self.zaak_url)
 
         checkout_id, checkout_by = self.cmis_client.checkout(document)
-
+        cmis_doc = self.cmis_client._get_cmis_doc(document)
         pwc = cmis_doc.getPrivateWorkingCopy()
         self.assertEqual(
             checkout_id,
@@ -37,7 +36,7 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        cmis_doc = self.cmis_client.maak_zaakdocument(document, self.zaak_url)
+        cmis_doc = self.cmis_client._get_cmis_doc(document)
         cmis_doc.checkout()
 
         with self.assertRaises(DocumentLockedException):
@@ -48,7 +47,6 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
         checkout_id, _checkout_by = self.cmis_client.checkout(document)
 
         result = self.cmis_client.cancel_checkout(document, checkout_id)
@@ -66,7 +64,6 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        self.cmis_client.maak_zaakdocument(document, self.zaak_url)
         _checkout_id, _checkout_by = self.cmis_client.checkout(document)
 
         with self.assertRaises(DocumentConflictException):

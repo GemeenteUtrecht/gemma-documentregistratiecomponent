@@ -18,7 +18,7 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        cmis_doc = self.cmis_client.maak_zaakdocument(document, zaak_url)
+
         # Update the document
         document.titel = 'nieuwe naam'
         document.beschrijving = 'Andere beschrijving'
@@ -27,10 +27,11 @@ class CMISClientTests(DMSMixin, TestCase):
         result = self.cmis_client.update_zaakdocument(document)
         self.assertIsNone(result)
 
+        cmis_doc = self.cmis_client._get_cmis_doc(document)
         cmis_doc = cmis_doc.getLatestVersion()
         self.assertExpectedProps(
             cmis_doc, {
-                'cmis:contentStreamLength': 0,
+                'cmis:contentStreamLength': document.inhoud.size,
                 'zsdms:documentIdentificatie': '31415926535',
                 'cmis:versionSeriesCheckedOutId': None,
                 'cmis:name': 'nieuwe naam',
@@ -44,7 +45,6 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        cmis_doc = self.cmis_client.maak_zaakdocument(document, zaak_url)
         inhoud = BinaireInhoud(b'leaky abstraction...', filename='andere bestandsnaam.txt')
 
         result = self.cmis_client.update_zaakdocument(document, inhoud=inhoud)
@@ -54,6 +54,7 @@ class CMISClientTests(DMSMixin, TestCase):
         self.assertEqual(filename, 'andere bestandsnaam.txt')
         self.assertEqual(content.read(), b'leaky abstraction...')
 
+        cmis_doc = self.cmis_client._get_cmis_doc(document)
         cmis_doc = cmis_doc.getLatestVersion()
         self.assertExpectedProps(
             cmis_doc, {
@@ -70,7 +71,7 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        cmis_doc = self.cmis_client.maak_zaakdocument(document, zaak_url)
+        cmis_doc = self.cmis_client._get_cmis_doc(document)
         cmis_doc.checkout()
         inhoud = BinaireInhoud(b'leaky abstraction...', filename='andere bestandsnaam.txt')
 
@@ -83,7 +84,7 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        cmis_doc = self.cmis_client.maak_zaakdocument(document, zaak_url)
+        cmis_doc = self.cmis_client._get_cmis_doc(document)
         pwc = cmis_doc.checkout()
         pwc.reload()
         checkout_id = pwc.properties['cmis:versionSeriesCheckedOutId']
@@ -99,7 +100,7 @@ class CMISClientTests(DMSMixin, TestCase):
         # self.assertEqual(filename, 'andere bestandsnaam.txt')
         # self.assertEqual(content.read(), b'leaky abstraction...')
         self.assertEqual(filename, 'testnaam')
-        self.assertEqual(content.read(), b'')
+        self.assertNotEqual(content.read(), b'')
 
         # TODO: Should not be commented
         # check that it's checked in again
@@ -112,7 +113,7 @@ class CMISClientTests(DMSMixin, TestCase):
         document = EnkelvoudigInformatieObjectFactory.create(
             titel='testnaam', identificatie='31415926535', beschrijving='Een beschrijving'
         )
-        cmis_doc = self.cmis_client.maak_zaakdocument(document, zaak_url)
+        cmis_doc = self.cmis_client._get_cmis_doc(document)
         cmis_doc.checkout()
         inhoud = BinaireInhoud(b'leaky abstraction...', filename='andere bestandsnaam.txt')
 
