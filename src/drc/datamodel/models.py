@@ -180,26 +180,6 @@ class EnkelvoudigInformatieObject(InformatieObject):
         'datum': integriteit_datum,
     })
 
-    def save(self, backend_save=False, *args, **kwargs):
-        if backend_save:
-            return super().save(*args, **kwargs)
-
-        from drc.backend import drc_storage_adapter
-        # Work with the backends
-        # Having an pk means that the object is already created and needs to be updated.
-        if self.pk:
-            drc_storage_adapter.update_document(self, updated_values={})
-        else:
-            drc_storage_adapter.create_document(self)
-
-        # Small secret, Only remove the file content/link for now. We will still save the document...
-        # If buildin backend is used. DO NOT SAVE! Will override the document.s
-        # TODO: Also empty all the other values that should be saved in the other backend.
-        if not settings.DRC_BUILDIN_BACKEND:
-            self.inhoud = None
-            self.link = None
-            return super().save(*args, **kwargs)
-
 
 class Gebruiksrechten(models.Model):
     uuid = models.UUIDField(

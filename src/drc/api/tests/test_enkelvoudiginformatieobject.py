@@ -10,14 +10,13 @@ from freezegun import freeze_time
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from drc.cmis.tests.mixins import DMSMixin
 from drc.datamodel.models import EnkelvoudigInformatieObject
 from drc.datamodel.tests.factories import EnkelvoudigInformatieObjectFactory
 
 
 @freeze_time('2018-06-27')
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
-class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
+class EnkelvoudigInformatieObjectAPITests(APITestCase):
 
     list_url = reverse_lazy('enkelvoudiginformatieobject-list', kwargs={'version': '1'})
 
@@ -74,7 +73,7 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
         expected_response = content.copy()
         expected_response.update({
             'url': f"http://testserver{expected_url}",
-            'inhoud': f"http://testserver{stored_object.get_inhoud_url()}",
+            'inhoud': f"{stored_object.inhoud.url}",
             'vertrouwelijkheidaanduiding': 'openbaar',
             'bestandsomvang': stored_object.inhoud.size,
             'integriteit': {
@@ -119,7 +118,7 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
             'formaat': 'some formaat',
             'taal': 'dut',
             'bestandsnaam': '',
-            'inhoud': f'http://testserver{test_object.get_inhoud_url()}',
+            'inhoud': f'{test_object.inhoud.url}',
             'bestandsomvang': test_object.inhoud.size,
             'link': '',
             'beschrijving': '',
@@ -286,7 +285,6 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
 
     @override_settings(LINK_FETCHER='zds_schema.mocks.link_fetcher_200')
     def test_read_response(self):
-        self.maxDiff = None
         content = {
             'identificatie': uuid.uuid4().hex,
             'bronorganisatie': '159351741',
@@ -319,8 +317,8 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, APITestCase):
             'creatiedatum': '2018-06-27', 'titel': 'detailed summary',
             'vertrouwelijkheidaanduiding': 'openbaar', 'auteur': 'test_auteur', 'status': '',
             'formaat': 'txt', 'taal': 'eng', 'bestandsnaam': 'dummy.txt',
-            # 'inhoud': 'http://testserver{}'.format(enkelvoudig_informatie.inhoud.url),
-            'inhoud': 'http://testserver/cmis/content/{}'.format(enkelvoudig_informatie.uuid),
+            'inhoud': enkelvoudig_informatie.inhoud.url,
+            # 'inhoud': 'http://testserver/cmis/content/{}'.format(enkelvoudig_informatie.uuid),
             'bestandsomvang': 17, 'link': 'http://een.link', 'beschrijving': 'test_beschrijving',
             'ontvangstdatum': None, 'verzenddatum': None, 'indicatie_gebruiksrecht': None,
             'ondertekening': {'soort': '', 'datum': None}, 'integriteit': {

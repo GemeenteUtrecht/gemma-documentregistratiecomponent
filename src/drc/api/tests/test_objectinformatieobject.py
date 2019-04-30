@@ -14,7 +14,6 @@ from vng_api_common.constants import ObjectTypes
 from vng_api_common.tests import get_validation_errors
 from vng_api_common.validators import IsImmutableValidator
 
-from drc.cmis.tests.mixins import DMSMixin
 from drc.datamodel.constants import RelatieAarden
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, ObjectInformatieObject
@@ -36,7 +35,7 @@ def dt_to_api(dt: datetime):
 
 
 @override_settings(LINK_FETCHER='vng_api_common.mocks.link_fetcher_200')
-class ObjectInformatieObjectAPITests(DMSMixin, APITestCase):
+class ObjectInformatieObjectAPITests(APITestCase):
 
     list_url = reverse_lazy('objectinformatieobject-list', kwargs={'version': '1'})
 

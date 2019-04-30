@@ -1,6 +1,8 @@
 """
 Serializers of the Document Registratie Component REST API
 """
+import logging
+
 from django.conf import settings
 from django.urls import reverse
 from django.utils.encoding import force_text
@@ -15,6 +17,7 @@ from vng_api_common.models import APICredential
 from vng_api_common.serializers import GegevensGroepSerializer
 from vng_api_common.validators import IsImmutableValidator, URLValidator
 
+from drc.backend import drc_storage_adapter
 from drc.datamodel.constants import RelatieAarden
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, Gebruiksrechten, ObjectInformatieObject
@@ -23,6 +26,8 @@ from drc.sync.signals import SyncError
 
 from .auth import get_zrc_auth, get_ztc_auth
 from .validators import StatusValidator
+
+logger = logging.getLogger(__name__)
 
 
 class AnyFileType:
@@ -156,7 +161,20 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         eio = super().create(validated_data)
         eio.integriteit = integriteit
         eio.ondertekening = ondertekening
-        eio.save(backend_save=True)
+        eio.save()
+
+        # Store via Storage adapter.
+        # TODO: Create a seperate model where the base information will be stored.
+        # TODO: Create a model where the files will be stored.
+        # Make sure that from that base information the rest of the information will be read.
+        try:
+            drc_storage_adapter.create_document(eio, eio.inhoud, eio.link)
+        except ValueError as val_error:
+            logger.error(val_error)
+            eio.delete()
+            raise serializer.ValidationError(
+                'Dit is een foutje!'
+            )
 
         return eio
 
@@ -167,6 +185,8 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         instance.integriteit = validated_data.pop('integriteit', None)
         instance.ondertekening = validated_data.pop('ondertekening', None)
         eio = super().update(instance, validated_data)
+
+        drc_storage_adapter.update_document(eio, None, eio.inhoud, eio.link)
 
         return eio
 

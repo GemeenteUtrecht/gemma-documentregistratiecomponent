@@ -62,11 +62,12 @@ INSTALLED_APPS = [
     'rest_framework_filters',
     'django_markup',
     'solo',
+    'drc_cmis',
 
     # Project applications.
     'drc.accounts',
     'drc.api',
-    'drc.cmis',
+    'drc.backend',
     'drc.datamodel',
     'drc.sync',
     'drc.utils',
@@ -274,7 +275,7 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'drc.cmis': {
+        'drc_cmis': {
             'handlers': ['cmis'],
             'level': 'INFO',
             'propagate': False,
@@ -369,8 +370,18 @@ IS_HTTPS = os.getenv('IS_HTTPS', '1').lower() in ['true', '1', 'yes']
 
 # settings for sending notifications
 NOTIFICATIONS_KANAAL = 'documenten'
-
+#
+# CMIS settings
+#
 DRC_BUILDIN_BACKEND = True
 DRC_STORAGE_BACKENDS = [
-    'drc.cmis.backend.CMISDRCStorageBackend'
+    'drc.backend.django.DjangoDRCStorageBackend',
+    'drc_cmis.backend.CMISDRCStorageBackend'
 ]
+
+#
+# DRC_CMIS_CLIENT
+#
+DRC_CMIS_CLIENT_URL = 'http://localhost:8080/alfresco/cmisatom'
+DRC_CMIS_CLIENT_USER = 'admin'
+DRC_CMIS_CLIENT_USER_PASSWORD = 'admin'

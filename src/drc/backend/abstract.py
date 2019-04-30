@@ -17,10 +17,10 @@ class BaseDRCStorageBackend:
     def get_document(self, enkelvoudiginformatieobject):
         raise NotImplementedError()
 
-    def create_document(self, enkelvoudiginformatieobject):
+    def create_document(self, enkelvoudiginformatieobject, bestand=None, link=None):
         raise NotImplementedError()
 
-    def update_document(self, enkelvoudiginformatieobject, updated_values):
+    def update_document(self, enkelvoudiginformatieobject, updated_values, bestand=None, link=None):
         raise NotImplementedError()
 
     def remove_document(self, enkelvoudiginformatieobject):

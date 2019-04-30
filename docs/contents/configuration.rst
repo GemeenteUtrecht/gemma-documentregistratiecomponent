@@ -19,8 +19,8 @@ CMIS_CLIENT_URL = 'http://localhost:8080/alfresco/cmisatom'
 CMIS_CLIENT_USER = 'admin'
 CMIS_CLIENT_USER_PASSWORD = 'admin'
 CMIS_SENDER_PROPERTY = None
-CMIS_UPLOAD_TO = 'drc.cmis.utils.upload_to'
-CMIS_CLIENT_CLASS = 'drc.cmis.client.CMISDRCClient'
+CMIS_UPLOAD_TO = 'drc_cmis.utils.upload_to'
+CMIS_CLIENT_CLASS = 'drc_cmis.client.CMISDRCClient'
 
 .. note::
 
