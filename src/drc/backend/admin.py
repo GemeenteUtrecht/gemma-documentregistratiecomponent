@@ -5,5 +5,5 @@ from .models import DjangoStorage
 
 @admin.register(DjangoStorage)
 class DjangoStorageAdmin(admin.ModelAdmin):
-    # list_display = ('', )
-    pass
+    list_display = ('enkelvoudiginformatieobject', )
+    search_fields = ('enkelvoudiginformatieobject', )

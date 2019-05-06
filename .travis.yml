@@ -1,0 +1,28 @@
+language: python
+python:
+  - 3.6
+
+services:
+  - docker
+
+install:
+  - docker build -t latest .
+  - docker push scrumteamzgw/gemma-documentregistratiecomponent:latest
+
+# safelist
+branches:
+  only:
+  - master
+  # TODO: This should be removed.
+  - feature/build-cmis
+
+# deploy:
+#   provider: pypi
+#   distributions: sdist bdist_wheel
+#   user: jostcrow
+#   password:
+#     secure: oktQFKZbjYS7oVfjl+DMJaUgt6ybjlxJZ63JiD2KPau9YLI8BDpOlDMUxm5dBBp9bx7FZLdR41kcRPZqxyyUdXIICeVUOxftXYhGnBLa+CBJnKY/wakPLDh7jicLUuwJUiYq0zyuxAOcXW78AEt8skOhtCKml/KXlqfj/2w0k9Q30DZo58zxLWZmciNXYD28iqbRwuGPXIheZ+LAQy2m+CCQAfb+AxQKZzC2BU1o/kNoTI4D9TCCye+/d5iFoL701mu20p0vnaV/g+lbkg5ASoREfagUgL1kKA9viAeBnOO4t+cGzhLDYWcO4YhoEOvBaYF9pCUk28wD4yjoZxspDqS59FDwXUy5SALOjfKRu+m5K/S6TNv9+VnXgpcnM0VyLgDjTnXxzVvmBRnXS6ZJtcP8682EcBsLySWxy64sjS/ERsUsvq6ouc9aIBLfrz0MlZxopHNfyO3/3v3DFs2RIOgyGqJjwHMEYhxagsAmTuxalG8u4YDNfPAtWCkMioqQZuFmlJ4Th2g+otxM70y4lyOIsGCOsP1Ef4X4UM4RBWee1XoOGDRaOey6z6lqeHvMYCiesnur80EuC7PYm2Oqfn14ItW1Te04cTSGgNkDGwC4nosZNGx/2SXpfHii/J193ZmzP2f+7JuVozWnffTfHNb+3zzf1CH+aMECVc4shNM=
+#   on:
+#     tags: true
+#     repo: GemeenteUtrecht/gemma-drc-cmis
+#     python: 3.6

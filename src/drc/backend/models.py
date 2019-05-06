@@ -9,3 +9,6 @@ class DjangoStorage(models.Model):
         help_text='De URL waarmee de inhoud van het INFORMATIEOBJECT op te '
                   'vragen is.',
     )
+
+    def __str__(self):
+        return f"document referentie voor {self.enkelvoudiginformatieobject}"
