@@ -3,11 +3,3 @@ services:
 
 install:
   - docker build -t latest .
-  - docker push scrumteamzgw/gemma-documentregistratiecomponent:latest
-
-# safelist
-branches:
-  only:
-  - master
-  # TODO: This should be removed.
-  - feature/build-cmis
