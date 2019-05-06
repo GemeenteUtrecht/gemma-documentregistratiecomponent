@@ -23,6 +23,3 @@ djangorestframework-filters
 drf-yasg
 vng-api-common[notifications]==0.38.0
 drc-cmis
-
-# cmis
--e git+https://github.com/maykinmedia/chemistry-cmislib.git@0.7.dev5#egg=cmislib
