@@ -13,6 +13,5 @@ DRC_STORAGE_BACKENDS = [
 #
 # DRC_CMIS_CLIENT
 #
-DRC_CMIS_CLIENT_URL = os.getenv('DRC_CMIS_CLIENT_URL', 'http://localhost:8082/alfresco/cmisatom')
-DRC_CMIS_CLIENT_USER = os.getenv('DRC_CMIS_CLIENT_USER', 'admin')
-DRC_CMIS_CLIENT_USER_PASSWORD = os.getenv('DRC_CMIS_CLIENT_USER_PASSWORD', 'admin')
+DRC_CMIS_UPLOAD_TO = os.getenv('DRC_CMIS_UPLOAD_TO', 'drc_cmis.utils.upload_to')
+DRC_CMIS_CLIENT_CLASS = os.getenv('DRC_CMIS_CLIENT_CLASS', 'drc_cmis.client.CMISDRCClient')

@@ -2,4 +2,4 @@ services:
   - docker
 
 install:
-  - docker build -t latest .
+  - docker build -t drc-utrecht .
