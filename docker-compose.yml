@@ -8,7 +8,7 @@ services:
     #   - POSTGRES_USER=${PG_USER:drc}
     #   - POSTGRES_PASSWORD=${PG_PASSWORD:drc}
   web:
-    image: vngr/gemma-drc
+    image: scrumteamzgw/gemma-documentregistratiecomponent
     environment:
       - DJANGO_SETTINGS_MODULE=drc.conf.docker
       - SECRET_KEY=${SECRET_KEY}

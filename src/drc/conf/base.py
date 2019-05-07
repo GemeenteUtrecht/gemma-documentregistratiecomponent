@@ -64,8 +64,6 @@ INSTALLED_APPS = [
     'django_markup',
     'solo',
     'drc_cmis',
-    'drc.zds_schema.ZDSSchemaConfig',  # TODO: remove once all environents have migrated
-
 
     # Project applications.
     'drc.accounts',
