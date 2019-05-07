@@ -23,3 +23,6 @@ djangorestframework-filters
 drf-yasg
 vng-api-common[notifications]==0.38.0
 drc-cmis
+
+# data migration - keep it around for a while
+zds-schema==0.21.5
