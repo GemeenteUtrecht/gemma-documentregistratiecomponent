@@ -5,7 +5,7 @@ python:
 services:
   - docker
 
-install:
+script:
   - docker build -t scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_BUILD_NUMBER .
 
 after_success:
