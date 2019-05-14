@@ -2,10 +2,11 @@ services:
   - docker
 
 install:
-  - docker build -t scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_BRANCH .
+  - docker build -t scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_BUILD_NUMBER .
 
 after_success:
   - if [[ "$TRAVIS_TAG" ]]; then
+      docker build -t scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_TAG .
       docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
       docker push scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_TAG;
     fi
