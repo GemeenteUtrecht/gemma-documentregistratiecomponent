@@ -10,7 +10,7 @@ script:
 
 after_success:
   - if [[ "$TRAVIS_TAG" ]]; then
-      docker build -t scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_TAG .
-      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      docker build -t scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_TAG .;
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD;
       docker push scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_TAG;
     fi
