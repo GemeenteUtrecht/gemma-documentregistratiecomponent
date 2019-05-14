@@ -1,13 +1,9 @@
+from django.conf import settings
 from django.urls import include, path
-
-from .models import StorageConfig
-
-config = StorageConfig.get_solo()
-
 
 urlpatterns = []
 
-if config.cmis_storage:
+if settings.ENABLE_CMIS:
     urlpatterns += [
         path('cmis/', include('drc_cmis.urls', namespace='cmis')),
     ]

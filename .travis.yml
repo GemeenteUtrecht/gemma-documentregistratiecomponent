@@ -2,4 +2,10 @@ services:
   - docker
 
 install:
-  - docker build -t drc-utrecht .
+  - docker build -t scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_TAG .
+
+after_success:
+  - if [[ "$TRAVIS_TAG" ]]; then
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      docker push scrumteamzgw/gemma-documentregistratiecomponent:$TRAVIS_TAG;
+    fi

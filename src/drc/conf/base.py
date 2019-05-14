@@ -64,7 +64,6 @@ INSTALLED_APPS = [
     'rest_framework_filters',
     'django_markup',
     'solo',
-    'drc_cmis',
 
     # Project applications.
     'drc.accounts',
