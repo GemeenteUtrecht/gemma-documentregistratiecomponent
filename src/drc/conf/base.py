@@ -4,7 +4,6 @@ import os
 from django.urls import reverse_lazy
 
 from .api import *  # noqa
-from .drc_cmis import *  # noqa
 
 SITE_ID = int(os.getenv('SITE_ID', 1))
 
@@ -17,6 +16,8 @@ BASE_DIR = os.path.abspath(os.path.join(DJANGO_PROJECT_DIR, os.path.pardir, os.p
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
+
+ENABLE_CMIS = os.getenv('ENABLE_CMIS', False)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -70,9 +71,13 @@ INSTALLED_APPS = [
     'drc.api',
     'drc.backend',
     'drc.datamodel',
+    'drc.plugins',
     'drc.sync',
     'drc.utils',
 ]
+
+if ENABLE_CMIS:
+    INSTALLED_APPS.append('drc_cmis')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -371,3 +376,6 @@ IS_HTTPS = os.getenv('IS_HTTPS', '1').lower() in ['true', '1', 'yes']
 
 # settings for sending notifications
 NOTIFICATIONS_KANAAL = 'documenten'
+
+# Where to find the enkelvoudiginformatieobject
+ENKELVOUDIGINFORMATIEOBJECT_MODEL = 'datamodel.EnkelvoudigInformatieObject'

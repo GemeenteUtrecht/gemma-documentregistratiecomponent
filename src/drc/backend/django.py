@@ -46,6 +46,6 @@ class DjangoDRCStorageBackend(BaseDRCStorageBackend):
 
         enkelvoudiginformatieobject.djangostorage.delete()
 
-    def move_document(self, enkelvoudiginformatieobject, zaak_url):
+    def connect_document_to_folder(self, enkelvoudiginformatieobject, zaak_url):
         # There are no folders created for django storage.
         pass

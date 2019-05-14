@@ -163,10 +163,6 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         eio.ondertekening = ondertekening
         eio.save()
 
-        # Store via Storage adapter.
-        # TODO: Create a seperate model where the base information will be stored.
-        # TODO: Create a model where the files will be stored.
-        # Make sure that from that base information the rest of the information will be read.
         try:
             drc_storage_adapter.create_document(eio, eio.inhoud, eio.link)
         except ValueError as val_error:
@@ -257,6 +253,35 @@ class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError({
                 api_settings.NON_FIELD_ERRORS_KEY: sync_error.args[0]
             }) from sync_error
+
+    def create(self, validated_data):
+        """
+        Handle backend calls.
+        """
+        oio = super().create(validated_data)
+
+        try:
+            drc_storage_adapter.create_folder(oio.object)
+            drc_storage_adapter.move_document(oio.informatieobject, oio.object)
+        except ValueError as val_error:
+            logger.error(val_error)
+            oio.delete()
+
+        return oio
+
+    def update(self, instance, validated_data):
+        """
+        Handle backend calls.
+        """
+        old_location = instance.object
+
+        oio = super().update(instance, validated_data)
+
+        if old_location != oio.object:
+            drc_storage_adapter.create_folder(oio.object)
+            drc_storage_adapter.move_document(oio.informatieobject, oio.object)
+
+        return oio
 
 
 class GebruiksrechtenSerializer(serializers.HyperlinkedModelSerializer):
