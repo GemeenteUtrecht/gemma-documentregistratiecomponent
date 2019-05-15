@@ -1,6 +1,6 @@
-from importlib import import_module
-
 from django.conf import settings
+
+from import_class import import_class, import_instance
 
 
 class DRCStorageAdapter(object):
@@ -16,10 +16,7 @@ class DRCStorageAdapter(object):
             return self.backends
 
         for _temp_storage in config_backends:
-            package, klass = _temp_storage.rsplit('.', 1)
-            module = import_module(package)
-            backend = getattr(module, klass)
-            self.backends.append(backend())
+            self.backends.append(import_instance(_temp_storage))
 
         return self.backends
 
@@ -41,9 +38,14 @@ class DRCStorageAdapter(object):
 
     def get_document(self, enkelvoudiginformatieobject):
         for backend in self.get_backends():
-            enkelvoudigdocument = backend.get_document(enkelvoudiginformatieobject)
-            if enkelvoudigdocument:
-                return enkelvoudigdocument
+            document = backend.get_document(enkelvoudiginformatieobject)
+            TempDocument = import_class(settings.TEMP_DOCUMENT_CLASS)
+
+            if not isinstance(document, TempDocument):
+                raise ValueError('Returned document is not of the TempDocument type.')
+
+            if document.url:
+                return document
         return None
 
     def create_document(self, enkelvoudiginformatieobject, bestand=None, link=None):

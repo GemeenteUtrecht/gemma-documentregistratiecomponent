@@ -4,7 +4,7 @@ Serializers of the Document Registratie Component REST API
 import logging
 
 from django.conf import settings
-from django.urls import reverse
+from django.contrib.sites.shortcuts import get_current_site
 from django.utils.encoding import force_text
 from django.utils.module_loading import import_string
 from django.utils.translation import ugettext_lazy as _
@@ -112,11 +112,29 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data['inhoud'] = self.get_file(instance)
+        data['auteur'] = self.get_from_temp_doc(instance, 'auteur')
+        data['bestandsnaam'] = self.get_from_temp_doc(instance, 'bestandsnaam')
+        data['creatiedatum'] = self.get_from_temp_doc(instance, 'creatiedatum')
+        data['vertrouwelijkheidaanduiding'] = self.get_from_temp_doc(instance, 'vertrouwelijkheidaanduiding')
+        data['taal'] = self.get_from_temp_doc(instance, 'taal')
         return data
 
     def get_file(self, obj):
         from drc.backend import drc_storage_adapter
-        return drc_storage_adapter.get_document(obj)
+
+        document = drc_storage_adapter.get_document(obj)
+        if document:
+            host = get_current_site(None).domain
+            schema = 'https' if settings.IS_HTTPS else 'http'
+            return f'{schema}://{host}{document.url}'
+        return None
+
+    def get_from_temp_doc(self, obj, attr_name):
+        from drc.backend import drc_storage_adapter
+        document = drc_storage_adapter.get_document(obj)
+        if document:
+            return getattr(document, attr_name)
+        return None
 
     def _get_informatieobjecttype(self, informatieobjecttype_url: str) -> dict:
         if not hasattr(self, 'informatieobjecttype'):

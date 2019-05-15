@@ -2,7 +2,7 @@ from django.db import models
 
 
 class DjangoStorage(models.Model):
-    enkelvoudiginformatieobject = models.ForeignKey('datamodel.EnkelvoudigInformatieObject', on_delete=models.CASCADE, related_name='djangostorage')
+    enkelvoudiginformatieobject = models.OneToOneField('datamodel.EnkelvoudigInformatieObject', on_delete=models.CASCADE, related_name='djangostorage')
     inhoud = models.FileField(upload_to='uploads/%Y/%m/')
     link = models.URLField(
         max_length=200, blank=True,

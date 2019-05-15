@@ -90,7 +90,6 @@ class EnkelvoudigInformatieObjectAPITests(APITestCase):
             'indicatieGebruiksrecht': None,
             'status': '',
         })
-        print(response.json())
         self.assertEqual(response.json(), expected_response)
 
     def test_read(self):

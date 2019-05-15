@@ -378,3 +378,5 @@ NOTIFICATIONS_KANAAL = 'documenten'
 
 # Where to find the enkelvoudiginformatieobject
 ENKELVOUDIGINFORMATIEOBJECT_MODEL = 'datamodel.EnkelvoudigInformatieObject'
+ABSTRACT_BASE_CLASS = 'drc.backend.abstract.BaseDRCStorageBackend'
+TEMP_DOCUMENT_CLASS = 'drc.backend.utils.TempDocument'

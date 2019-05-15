@@ -8,6 +8,7 @@ raven
 Sphinx
 sphinx-rtd-theme
 markdown
+import_class
 
 Django==2.0.13
 django-axes

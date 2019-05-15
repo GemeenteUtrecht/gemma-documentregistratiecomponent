@@ -1,7 +1,10 @@
-from drc.backend.abstract import BaseDRCStorageBackend
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+
+from import_class import import_class
 
 
-class DjangoDRCStorageBackend(BaseDRCStorageBackend):
+class DjangoDRCStorageBackend(import_class(settings.ABSTRACT_BASE_CLASS)):
     """
     This is the backend that is used to store the documents in a CMIS compatible backend.
     """
@@ -22,7 +25,20 @@ class DjangoDRCStorageBackend(BaseDRCStorageBackend):
         pass
 
     def get_document(self, enkelvoudiginformatieobject):
-        return enkelvoudiginformatieobject.inhoud.url
+        TempDocument = import_class(settings.TEMP_DOCUMENT_CLASS)
+        try:
+            storage = enkelvoudiginformatieobject.djangostorage
+        except ObjectDoesNotExist:
+            return TempDocument()
+        else:
+            return TempDocument(
+                url=storage.inhoud.url,
+                auteur=enkelvoudiginformatieobject.auteur,
+                bestandsnaam=enkelvoudiginformatieobject.bestandsnaam,
+                creatiedatum=enkelvoudiginformatieobject.creatiedatum,
+                vertrouwelijkheidaanduiding=enkelvoudiginformatieobject.vertrouwelijkheidaanduiding,
+                taal=enkelvoudiginformatieobject.taal,
+            )
 
     def create_document(self, enkelvoudiginformatieobject, bestand=None, link=None):
         from .models import DjangoStorage
