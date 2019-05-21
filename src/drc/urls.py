@@ -10,7 +10,6 @@ handler500 = 'drc.utils.views.server_error'
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('drc.api.urls')),
-    path('plugins/', include('drc.plugins.urls')),
 
     # Simply show the index template.
     path('', TemplateView.as_view(template_name='index.html')),

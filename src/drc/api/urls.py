@@ -10,7 +10,7 @@ from .viewsets import (
 )
 
 router = DefaultRouter(trailing_slash=False)
-router.register('enkelvoudiginformatieobjecten', EnkelvoudigInformatieObjectViewSet)
+router.register('enkelvoudiginformatieobjecten', EnkelvoudigInformatieObjectViewSet, base_name='enkelvoudiginformatieobjecten')
 router.register('gebruiksrechten', GebruiksrechtenViewSet)
 router.register('objectinformatieobjecten', ObjectInformatieObjectViewSet)
 

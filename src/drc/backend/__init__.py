@@ -1,76 +1,71 @@
+from uuid import uuid4
+
 from django.conf import settings
 
 from import_class import import_class, import_instance
 
 
-class DRCStorageAdapter(object):
+class DRCStorageAdapter:
     backends = []
 
-    def get_backends(self):
-        from drc.plugins.models import StorageConfig
-        config = StorageConfig.get_solo()
+    def __init__(self):
+        self.backend = import_instance('drc_cmis.backend.CMISDRCStorageBackend')
 
-        config_backends = config.get_backends()
+    def create_enkelvoudiginformatieobject(self, validated_data):
+        inhoud = validated_data.pop('inhoud')
 
-        if self.backends and len(self.backends) == len(config_backends):
-            return self.backends
+        # Add a default identificatie (uuid4) is no identification is passed
+        if not validated_data.get('identificatie'):
+            validated_data['identificatie'] = uuid4()
 
-        for _temp_storage in config_backends:
-            self.backends.append(import_instance(_temp_storage))
+        return self.backend.create_document(validated_data.copy(), inhoud)
 
-        return self.backends
+    def get_documents(self):
+        return self.backend.get_documents()
 
-    def get_folder(self, zaak_url):
-        for backend in self.get_backends():
-            backend.get_folder(zaak_url)
+    def update_enkenvoudiginformatieobject(self, validated_data, identificatie):
+        inhoud = validated_data.pop('inhoud')
+        return self.backend.update_document(validated_data.copy(), identificatie, inhoud)
 
-    def create_folder(self, zaak_url):
-        for backend in self.get_backends():
-            backend.create_folder(zaak_url)
+    # def get_folder(self, zaak_url):
+    #     for backend in self.get_backends():
+    #         backend.get_folder(zaak_url)
 
-    def rename_folder(self, old_zaak_url, new_zaak_url):
-        for backend in self.get_backends():
-            backend.rename_folder(old_zaak_url, new_zaak_url)
+    # def create_folder(self, zaak_url):
+    #     for backend in self.get_backends():
+    #         backend.create_folder(zaak_url)
 
-    def remove_folder(self, zaak_url):
-        for backend in self.get_backends():
-            backend.remove_folder(zaak_url)
+    # def rename_folder(self, old_zaak_url, new_zaak_url):
+    #     for backend in self.get_backends():
+    #         backend.rename_folder(old_zaak_url, new_zaak_url)
 
-    def get_document(self, enkelvoudiginformatieobject):
-        for backend in self.get_backends():
-            document = backend.get_document(enkelvoudiginformatieobject)
-            TempDocument = import_class(settings.TEMP_DOCUMENT_CLASS)
+    # def remove_folder(self, zaak_url):
+    #     for backend in self.get_backends():
+    #         backend.remove_folder(zaak_url)
 
-            if not isinstance(document, TempDocument):
-                raise ValueError('Returned document is not of the TempDocument type.')
+    # def get_document(self, enkelvoudiginformatieobject):
+    #     for backend in self.get_backends():
+    #         document = backend.get_document(enkelvoudiginformatieobject)
+    #         TempDocument = import_class(settings.TEMP_DOCUMENT_CLASS)
 
-            if document.url:
-                return document
-        return None
+    #         if not isinstance(document, TempDocument):
+    #             raise ValueError('Returned document is not of the TempDocument type.')
 
-    def create_document(self, enkelvoudiginformatieobject, bestand=None, link=None):
-        self._validate_contents(bestand, link)
+    #         if document.url:
+    #             return document
+    #     return None
 
-        for backend in self.get_backends():
-            backend.create_document(enkelvoudiginformatieobject, bestand=bestand, link=link)
+    # def remove_document(self, enkelvoudiginformatieobject):
+    #     for backend in self.get_backends():
+    #         backend.remove_document(enkelvoudiginformatieobject)
 
-    def update_document(self, enkelvoudiginformatieobject, updated_values, bestand=None, link=None):
-        self._validate_contents(bestand, link)
+    # def connect_document_to_folder(self, enkelvoudiginformatieobject, zaak_url):
+    #     for backend in self.get_backends():
+    #         backend.connect_document_to_folder(enkelvoudiginformatieobject, zaak_url)
 
-        for backend in self.get_backends():
-            backend.update_document(enkelvoudiginformatieobject, updated_values, bestand=bestand, link=link)
-
-    def remove_document(self, enkelvoudiginformatieobject):
-        for backend in self.get_backends():
-            backend.remove_document(enkelvoudiginformatieobject)
-
-    def connect_document_to_folder(self, enkelvoudiginformatieobject, zaak_url):
-        for backend in self.get_backends():
-            backend.connect_document_to_folder(enkelvoudiginformatieobject, zaak_url)
-
-    def _validate_contents(self, bestand=None, link=None):
-        if not bestand and not link:
-            raise ValueError('No bestand and link provided. Either provide a bestand or link')
+    # def _validate_contents(self, bestand=None, link=None):
+    #     if not bestand and not link:
+    #         raise ValueError('No bestand and link provided. Either provide a bestand or link')
 
 
 drc_storage_adapter = DRCStorageAdapter()

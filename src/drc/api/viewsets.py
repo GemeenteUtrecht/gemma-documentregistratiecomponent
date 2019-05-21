@@ -1,8 +1,13 @@
-from rest_framework import viewsets
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status, viewsets
+from rest_framework.response import Response
+from rest_framework.settings import api_settings
 from vng_api_common.notifications.viewsets import NotificationViewSetMixin
 from vng_api_common.permissions import ActionScopesRequired
+from vng_api_common.serializers import ValidatieFoutSerializer
 from vng_api_common.viewsets import CheckQueryParamsMixin
 
+from drc.backend import drc_storage_adapter
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, Gebruiksrechten, ObjectInformatieObject
 )
@@ -19,8 +24,8 @@ from .serializers import (
 )
 
 
-class EnkelvoudigInformatieObjectViewSet(NotificationViewSetMixin,
-                                         viewsets.ModelViewSet):
+# TODO: Fix that notifications can be send.
+class EnkelvoudigInformatieObjectViewSet(viewsets.ViewSet):
     """
     Ontsluit ENKELVOUDIG INFORMATIEOBJECTen.
 
@@ -70,7 +75,6 @@ class EnkelvoudigInformatieObjectViewSet(NotificationViewSetMixin,
     - `ObjectInformatieObject` - alle relaties van het informatieobject
     - `Gebruiksrechten` - alle gebruiksrechten van het informatieobject
     """
-    queryset = EnkelvoudigInformatieObject.objects.all()
     serializer_class = EnkelvoudigInformatieObjectSerializer
     filterset_class = EnkelvoudigInformatieObjectFilter
     lookup_field = 'uuid'
@@ -79,6 +83,73 @@ class EnkelvoudigInformatieObjectViewSet(NotificationViewSetMixin,
         'destroy': SCOPE_DOCUMENTEN_ALLES_VERWIJDEREN,
     }
     notifications_kanaal = KANAAL_DOCUMENTEN
+
+    @swagger_auto_schema(responses={
+        200: EnkelvoudigInformatieObjectSerializer(many=True), 400: ValidatieFoutSerializer, 401: ValidatieFoutSerializer,
+        403: ValidatieFoutSerializer, 406: ValidatieFoutSerializer, 409: ValidatieFoutSerializer,
+        410: ValidatieFoutSerializer, 415: ValidatieFoutSerializer, 429: ValidatieFoutSerializer,
+        500: ValidatieFoutSerializer,
+    })
+    def list(self, request, *args, **kwargs):
+        documents_data = drc_storage_adapter.get_documents()
+
+        serializer = EnkelvoudigInformatieObjectSerializer(data=documents_data, many=True)
+        if serializer.is_valid():
+            print(serializer.data)
+            return Response(serializer.data)
+        print(serializer.errors)
+        return Response(data="Could not parse the data", status=500)
+
+    @swagger_auto_schema(responses={
+        200: EnkelvoudigInformatieObjectSerializer, 400: ValidatieFoutSerializer, 401: ValidatieFoutSerializer,
+        403: ValidatieFoutSerializer, 406: ValidatieFoutSerializer, 409: ValidatieFoutSerializer,
+        410: ValidatieFoutSerializer, 415: ValidatieFoutSerializer, 429: ValidatieFoutSerializer,
+        500: ValidatieFoutSerializer,
+    })
+    def retrieve(self, request, pk=None):
+        serializer = EnkelvoudigInformatieObjectSerializer(data={})
+        return Response(serializer.data)
+
+    @swagger_auto_schema(request_body=EnkelvoudigInformatieObjectSerializer)
+    def create(self, request):
+        serializer = EnkelvoudigInformatieObjectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.create()
+
+        headers = self.get_success_headers(serializer.data)
+        response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # self.notify(response.status_code, response.data)
+        return response
+
+    @swagger_auto_schema(request_body=EnkelvoudigInformatieObjectSerializer)
+    def update(self, request, pk=None):
+        serializer = EnkelvoudigInformatieObjectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.update(pk)
+
+        headers = self.get_success_headers(serializer.data)
+        response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # self.notify(response.status_code, response.data)
+        return response
+
+    @swagger_auto_schema(request_body=EnkelvoudigInformatieObjectSerializer)
+    def partial_update(self, request, pk=None):
+        # self.notify(response.status_code, response.data)
+        return response
+
+    @swagger_auto_schema()
+    def destroy(self, request, pk=None):
+        # get data via serializer
+        instance = self.get_object()
+        data = self.get_serializer(instance).data
+        # self.notify(response.status_code, data, instance=instance)
+        return response
+
+    def get_success_headers(self, data):
+        try:
+            return {'Location': str(data[api_settings.URL_FIELD_NAME])}
+        except (TypeError, KeyError):
+            return {}
 
 
 class ObjectInformatieObjectViewSet(NotificationViewSetMixin,
