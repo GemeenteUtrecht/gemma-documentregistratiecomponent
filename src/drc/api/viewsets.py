@@ -92,13 +92,7 @@ class EnkelvoudigInformatieObjectViewSet(viewsets.ViewSet):
     })
     def list(self, request, *args, **kwargs):
         documents_data = drc_storage_adapter.get_documents()
-
-        serializer = EnkelvoudigInformatieObjectSerializer(data=documents_data, many=True)
-        if serializer.is_valid():
-            print(serializer.data)
-            return Response(serializer.data)
-        print(serializer.errors)
-        return Response(data="Could not parse the data", status=500)
+        return Response(documents_data)
 
     @swagger_auto_schema(responses={
         200: EnkelvoudigInformatieObjectSerializer, 400: ValidatieFoutSerializer, 401: ValidatieFoutSerializer,
