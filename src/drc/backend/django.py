@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
+from django.urls import reverse
 
 from import_class import import_class
 
@@ -8,60 +8,61 @@ class DjangoDRCStorageBackend(import_class(settings.ABSTRACT_BASE_CLASS)):
     """
     This is the backend that is used to store the documents in a CMIS compatible backend.
     """
-    def get_folder(self, zaak_url):
-        # There are no folders created for django storage.
-        pass
+    def create_document(self, validated_data, inhoud):
+        from drc.datamodel.models import EnkelvoudigInformatieObject
+        eio = EnkelvoudigInformatieObject(**validated_data)
+        eio.inhoud = inhoud
+        eio.save()
+        return eio
 
-    def create_folder(self, zaak_url):
-        # There are no folders created for django storage.
-        pass
+    def get_documents(self):
+        from drc.datamodel.models import EnkelvoudigInformatieObject
+        eios = EnkelvoudigInformatieObject.objects.all()
+        documents = []
+        for eio in eios:
+            doc = self.prepare_document(eio)
+            documents.append(doc)
+        return documents
 
-    def rename_folder(self, old_zaak_url, new_zaak_url):
-        # There are no folders created for django storage.
-        pass
+    def update_document(self, validated_data, identificatie, inhoud):
+        from drc.datamodel.models import EnkelvoudigInformatieObject
+        eio = EnkelvoudigInformatieObject.objects.get(identificatie=identificatie)
 
-    def remove_folder(self, zaak_url):
-        # There are no folders created for django storage.
-        pass
+        # TODO: Update the values
+        eio.save()
+        return eio
 
-    def get_document(self, enkelvoudiginformatieobject):
-        TempDocument = import_class(settings.TEMP_DOCUMENT_CLASS)
-        try:
-            storage = enkelvoudiginformatieobject.djangostorage
-        except ObjectDoesNotExist:
-            return TempDocument()
-        else:
-            return TempDocument(
-                url=storage.inhoud.url,
-                auteur=enkelvoudiginformatieobject.auteur,
-                bestandsnaam=enkelvoudiginformatieobject.bestandsnaam,
-                creatiedatum=enkelvoudiginformatieobject.creatiedatum,
-                vertrouwelijkheidaanduiding=enkelvoudiginformatieobject.vertrouwelijkheidaanduiding,
-                taal=enkelvoudiginformatieobject.taal,
-            )
+    def get_document(self, identificatie):
+        from drc.datamodel.models import EnkelvoudigInformatieObject
+        eio = EnkelvoudigInformatieObject.objects.get(identificatie=identificatie)
+        return self.prepare_document(eio)
 
-    def create_document(self, enkelvoudiginformatieobject, bestand=None, link=None):
-        from .models import DjangoStorage
-        return DjangoStorage.objects.create(
-            enkelvoudiginformatieobject=enkelvoudiginformatieobject,
-            inhoud=bestand,
-            link=link
-        )
-
-    def update_document(self, enkelvoudiginformatieobject, updated_values, bestand=None, link=None):
-        if not hasattr(enkelvoudiginformatieobject, 'djangostorage'):
-            raise AttributeError('Document has no djangostorage.')
-        djangostorage = enkelvoudiginformatieobject.djangostorage
-        djangostorage.inhoud = bestand
-        djangostorage.link = link
-        djangostorage.save()
-
-    def remove_document(self, enkelvoudiginformatieobject):
-        if not hasattr(enkelvoudiginformatieobject, 'djangostorage'):
-            raise AttributeError('Document has no djangostorage.')
-
-        enkelvoudiginformatieobject.djangostorage.delete()
-
-    def connect_document_to_folder(self, enkelvoudiginformatieobject, zaak_url):
-        # There are no folders created for django storage.
-        pass
+    def prepare_document(self, eio):
+        print(eio.inhoud.url)
+        document = {
+            "url": "{}{}".format(settings.HOST_URL, reverse('enkelvoudiginformatieobjecten-detail', kwargs={'version': '1', 'uuid': eio.identificatie})),
+            "inhoud": "{}{}".format(settings.HOST_URL, eio.inhoud.url),
+            "creatiedatum": eio.creatiedatum,
+            "ontvangstdatum": eio.ontvangstdatum,
+            "verzenddatum": eio.verzenddatum,
+            "integriteit_datum": eio.integriteit_datum,
+            "titel": eio.titel,
+            "identificatie": eio.identificatie,
+            "bronorganisatie": eio.bronorganisatie,
+            "vertrouwelijkaanduiding": eio.vertrouwelijkheidaanduiding,
+            "auteur": eio.auteur,
+            "status": eio.status,
+            "beschrijving": eio.beschrijving,
+            "indicatie_gebruiksrecht": eio.indicatie_gebruiksrecht,
+            "ondertekening_soort": eio.ondertekening_soort,
+            "ondertekening_datum": eio.ondertekening_datum,
+            "informatieobjecttype": eio.informatieobjecttype,
+            "formaat": eio.formaat,
+            "taal": eio.taal,
+            "bestandsnaam": eio.bestandsnaam,
+            "link": eio.link,
+            "integriteit_algoritme": eio.integriteit_algoritme,
+            "integriteit_waarde": eio.integriteit_waarde,
+            "bestandsomvang": eio.inhoud.size,
+        }
+        return document

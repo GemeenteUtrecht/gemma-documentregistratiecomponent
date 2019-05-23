@@ -9,7 +9,10 @@ class DRCStorageAdapter:
     backends = []
 
     def __init__(self):
-        self.backend = import_instance('drc_cmis.backend.CMISDRCStorageBackend')
+        self.backend = import_instance('drc.backend.django.DjangoDRCStorageBackend')
+
+        if settings.CMIS_ENABLED:
+            self.backend = import_instance('drc_cmis.backend.CMISDRCStorageBackend')
 
     def create_enkelvoudiginformatieobject(self, validated_data):
         inhoud = validated_data.pop('inhoud')
@@ -26,6 +29,9 @@ class DRCStorageAdapter:
     def update_enkenvoudiginformatieobject(self, validated_data, identificatie):
         inhoud = validated_data.pop('inhoud')
         return self.backend.update_document(validated_data.copy(), identificatie, inhoud)
+
+    def get_document(self, uuid):
+        return self.backend.get_document(uuid)
 
     # def get_folder(self, zaak_url):
     #     for backend in self.get_backends():

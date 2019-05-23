@@ -16,3 +16,6 @@ class BaseDRCStorageBackend:
 
     def update_enkelvoudiginformatieobject(self, validated_data, identificatie, inhoud):
         raise NotImplementedError()
+
+    def get_document(self, uuid):
+        raise NotImplementedError()
