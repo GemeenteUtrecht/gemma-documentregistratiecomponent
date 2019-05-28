@@ -137,14 +137,12 @@ class RetrieveEnkelvoudigInformatieObjectSerializer(serializers.Serializer):
         Handle the create calls.
         """
         drc_storage_adapter.create_enkelvoudiginformatieobject(self.validated_data.copy())
-        return None
 
     def update(self, identificatie):
         """
         Handle the update calls.
         """
         drc_storage_adapter.update_enkelvoudiginformatieobject(self.validated_data.copy(), identificatie)
-        return None
 
 # class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
 #     """
@@ -297,26 +295,21 @@ class RetrieveEnkelvoudigInformatieObjectSerializer(serializers.Serializer):
 #         return eio
 
 
-class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
+class ObjectInformatieObjectSerializer(serializers.Serializer):
+    url = serializers.URLField(allow_blank=True, allow_null=True, required=False)
+    informatieobject = serializers.URLField(allow_blank=True, allow_null=True)
+    object = serializers.URLField(max_length=200, allow_blank=True, allow_null=True, help_text="URL naar het gerelateerde OBJECT.")
+    object_type = serializers.ChoiceField(allow_blank=True, allow_null=True, choices=ObjectTypes.choices)
     aard_relatie_weergave = serializers.ChoiceField(
-        source='get_aard_relatie_display', read_only=True,
-        choices=[(force_text(value), key) for key, value in RelatieAarden.choices]
+        read_only=True, choices=[(force_text(value), key) for key, value in RelatieAarden.choices]
     )
+    titel = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False, help_text='De naam waaronder het INFORMATIEOBJECT binnen het OBJECT bekend is.')
+    beschrijving = serializers.URLField(allow_blank=True, allow_null=True, required=False, help_text='Een op het object gerichte beschrijving van de inhoud vanhet INFORMATIEOBJECT.')
+    registratiedatum = serializers.DateTimeField(read_only=True, allow_null=True, help_text='De datum waarop de behandelende organisatie het INFORMATIEOBJECT heeft geregistreerd bij het OBJECT. Geldige waardes zijn datumtijden gelegen op of voor de huidige datum en tijd.')
 
     # TODO: valideer dat ObjectInformatieObject.informatieobjecttype hoort
     # bij zaak.zaaktype
     class Meta:
-        model = ObjectInformatieObject
-        fields = (
-            'url',
-            'informatieobject',
-            'object',
-            'object_type',
-            'aard_relatie_weergave',
-            'titel',
-            'beschrijving',
-            'registratiedatum',
-        )
         extra_kwargs = {
             'url': {
                 'lookup_field': 'uuid',
@@ -342,7 +335,14 @@ class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
         if not hasattr(self, 'initial_data'):
             return
 
-        object_type = self.initial_data.get('object_type')
+        if isinstance(self.initial_data, list):
+            for initial_data in self.initial_data:
+                self.check_data(initial_data)
+        else:
+            self.check_data(self.initial_data)
+
+    def check_data(self, initial_data):
+        object_type = initial_data.get('object_type')
 
         if object_type == ObjectTypes.besluit:
             del self.fields['titel']
@@ -364,20 +364,11 @@ class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
                 api_settings.NON_FIELD_ERRORS_KEY: sync_error.args[0]
             }) from sync_error
 
-    def create(self, validated_data):
+    def create(self):
         """
         Handle backend calls.
         """
-        oio = super().create(validated_data)
-
-        try:
-            drc_storage_adapter.create_folder(oio.object)
-            drc_storage_adapter.move_document(oio.informatieobject, oio.object)
-        except ValueError as val_error:
-            logger.error(val_error)
-            oio.delete()
-
-        return oio
+        drc_storage_adapter.create_objectinformatieobject(self.validated_data.copy())
 
     def update(self, instance, validated_data):
         """
@@ -392,6 +383,103 @@ class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
             drc_storage_adapter.move_document(oio.informatieobject, oio.object)
 
         return oio
+
+
+# class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
+#     aard_relatie_weergave = serializers.ChoiceField(
+#         source='get_aard_relatie_display', read_only=True,
+#         choices=[(force_text(value), key) for key, value in RelatieAarden.choices]
+#     )
+
+#     # TODO: valideer dat ObjectInformatieObject.informatieobjecttype hoort
+#     # bij zaak.zaaktype
+#     class Meta:
+#         model = ObjectInformatieObject
+#         fields = (
+#             'url',
+#             'informatieobject',
+#             'object',
+#             'object_type',
+#             'aard_relatie_weergave',
+#             'titel',
+#             'beschrijving',
+#             'registratiedatum',
+#         )
+#         extra_kwargs = {
+#             'url': {
+#                 'lookup_field': 'uuid',
+#             },
+#             'informatieobject': {
+#                 'lookup_field': 'uuid',
+#                 'validators': [IsImmutableValidator()],
+#             },
+#             'object': {
+#                 'validators': [
+#                     URLValidator(get_auth=get_zrc_auth, headers={'Accept-Crs': 'EPSG:4326'}),
+#                     IsImmutableValidator(),
+#                 ],
+#             },
+#             'object_type': {
+#                 'validators': [IsImmutableValidator()]
+#             }
+#         }
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+
+#         if not hasattr(self, 'initial_data'):
+#             return
+
+#         object_type = self.initial_data.get('object_type')
+
+#         if object_type == ObjectTypes.besluit:
+#             del self.fields['titel']
+#             del self.fields['beschrijving']
+#             del self.fields['registratiedatum']
+
+#     def save(self, **kwargs):
+#         # can't slap a transaction atomic on this, since ZRC/BRC query for the
+#         # relation!
+#         try:
+#             return super().save(**kwargs)
+#         except SyncError as sync_error:
+#             # delete the object again
+#             ObjectInformatieObject.objects.filter(
+#                 informatieobject=self.validated_data['informatieobject'],
+#                 object=self.validated_data['object']
+#             )._raw_delete('default')
+#             raise serializers.ValidationError({
+#                 api_settings.NON_FIELD_ERRORS_KEY: sync_error.args[0]
+#             }) from sync_error
+
+#     def create(self, validated_data):
+#         """
+#         Handle backend calls.
+#         """
+#         oio = super().create(validated_data)
+
+#         try:
+#             drc_storage_adapter.create_folder(oio.object)
+#             drc_storage_adapter.move_document(oio.informatieobject, oio.object)
+#         except ValueError as val_error:
+#             logger.error(val_error)
+#             oio.delete()
+
+#         return oio
+
+#     def update(self, instance, validated_data):
+#         """
+#         Handle backend calls.
+#         """
+#         old_location = instance.object
+
+#         oio = super().update(instance, validated_data)
+
+#         if old_location != oio.object:
+#             drc_storage_adapter.create_folder(oio.object)
+#             drc_storage_adapter.move_document(oio.informatieobject, oio.object)
+
+#         return oio
 
 
 class GebruiksrechtenSerializer(serializers.HyperlinkedModelSerializer):

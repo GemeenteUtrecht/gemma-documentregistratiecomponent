@@ -33,6 +33,12 @@ class DRCStorageAdapter:
     def get_document(self, uuid):
         return self.backend.get_document(uuid)
 
+    def get_document_cases(self):
+        return self.backend.get_document_cases()
+
+    def create_objectinformatieobject(self, validated_data):
+        return self.backend.create_case_link(validated_data.copy())
+
     # def get_folder(self, zaak_url):
     #     for backend in self.get_backends():
     #         backend.get_folder(zaak_url)

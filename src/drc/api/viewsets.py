@@ -116,20 +116,19 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet)
     - `Gebruiksrechten` - alle gebruiksrechten van het informatieobject
     """
     serializer_class = EnkelvoudigInformatieObjectSerializer
-    filterset_class = EnkelvoudigInformatieObjectFilter
+    filterset_class = EnkelvoudigInformatieObjectFilter # TODO
     lookup_field = 'uuid'
     permission_classes = (ActionScopesRequired, )
     required_scopes = {
-        'destroy': SCOPE_DOCUMENTEN_ALLES_VERWIJDEREN,
+        'destroy': SCOPE_DOCUMENTEN_ALLES_VERWIJDEREN, # TODO
     }
-    notifications_kanaal = KANAAL_DOCUMENTEN
+    notifications_kanaal = KANAAL_DOCUMENTEN #TODO
 
     def list(self, request, version=None):
         documents_data = drc_storage_adapter.get_documents()
         serializer = RetrieveEnkelvoudigInformatieObjectSerializer(data=documents_data, many=True)
         if serializer.is_valid():
             return Response(serializer.initial_data)
-        assert False, serializer.errors
         return Response({"message": "invalid data"}, status=500)
 
     def retrieve(self, request, uuid=None, version=None):
@@ -137,7 +136,6 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet)
         serializer = RetrieveEnkelvoudigInformatieObjectSerializer(data=document_data)
         if serializer.is_valid():
             return Response(serializer.initial_data)
-        assert False, serializer.errors
         return Response({"message": "invalid data"}, status=500)
 
     def create(self, request, version=None):
@@ -160,10 +158,12 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet)
         # self.notify(response.status_code, response.data)
         return response
 
+    # TODO
     def partial_update(self, request, uuid=None):
         # self.notify(response.status_code, response.data)
         return response
 
+    # TODO
     def destroy(self, request, uuid=None):
         # get data via serializer
         instance = self.get_object()
@@ -178,9 +178,7 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet)
             return {}
 
 
-class ObjectInformatieObjectViewSet(NotificationViewSetMixin,
-                                    CheckQueryParamsMixin,
-                                    viewsets.ModelViewSet):
+class ObjectInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet):
     """
     Beheer relatie tussen InformatieObject en OBJECT.
 
@@ -236,12 +234,66 @@ class ObjectInformatieObjectViewSet(NotificationViewSetMixin,
     destroy:
     Verwijdert de relatie tussen OBJECT en INFORMATIEOBJECT.
     """
-    queryset = ObjectInformatieObject.objects.all()
     serializer_class = ObjectInformatieObjectSerializer
-    filterset_class = ObjectInformatieObjectFilter
+    filterset_class = ObjectInformatieObjectFilter # TODO
     lookup_field = 'uuid'
-    notifications_kanaal = KANAAL_DOCUMENTEN
-    notifications_main_resource_key = 'informatieobject'
+    notifications_kanaal = KANAAL_DOCUMENTEN # TODO
+    notifications_main_resource_key = 'informatieobject' # TODO
+
+    def list(self, request, version=None):
+        documents_data = drc_storage_adapter.get_document_cases()
+        serializer = ObjectInformatieObjectSerializer(data=documents_data, many=True)
+        if serializer.is_valid():
+            return Response(serializer.initial_data)
+        assert False, serializer.errors
+        return Response({"message": "invalid data"}, status=500)
+
+    def retrieve(self, request, uuid=None, version=None):
+        document_data = drc_storage_adapter.get_document(uuid=uuid)
+        serializer = ObjectInformatieObjectSerializer(data=document_data)
+        if serializer.is_valid():
+            return Response(serializer.initial_data)
+        assert False, serializer.errors
+        return Response({"message": "invalid data"}, status=500)
+
+    def create(self, request, version=None):
+        serializer = ObjectInformatieObjectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.create()
+
+        headers = self.get_success_headers(serializer.data)
+        response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # self.notify(response.status_code, response.data)
+        return response
+
+    def update(self, request, uuid=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.update(uuid)
+
+        headers = self.get_success_headers(serializer.data)
+        response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # self.notify(response.status_code, response.data)
+        return response
+
+    # TODO
+    def partial_update(self, request, uuid=None):
+        # self.notify(response.status_code, response.data)
+        return response
+
+    # TODO
+    def destroy(self, request, uuid=None):
+        # get data via serializer
+        instance = self.get_object()
+        data = self.get_serializer(instance).data
+        # self.notify(response.status_code, data, instance=instance)
+        return response
+
+    def get_success_headers(self, data):
+        try:
+            return {'Location': str(data[api_settings.URL_FIELD_NAME])}
+        except (TypeError, KeyError):
+            return {}
 
 
 class GebruiksrechtenViewSet(NotificationViewSetMixin,

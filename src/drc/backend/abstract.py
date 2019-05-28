@@ -19,3 +19,12 @@ class BaseDRCStorageBackend:
 
     def get_document(self, uuid):
         raise NotImplementedError()
+
+    def get_document_cases(self):
+        """
+        Get all documents that have a case url.
+        """
+        raise NotImplementedError()
+
+    def create_case_link(self, validated_data):
+        raise NotImplementedError()
