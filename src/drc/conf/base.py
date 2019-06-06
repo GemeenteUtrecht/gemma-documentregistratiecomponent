@@ -383,3 +383,4 @@ ABSTRACT_ERROR_CLASS = 'drc.backend.exceptions.BackendException'
 TEMP_DOCUMENT_CLASS = 'drc.backend.utils.TempDocument'
 
 HOST_URL = 'http://localhost:8000'
+DEFAULT_NOTIFICATIONS_HANDLER = 'drc_cmis.notifications.default'

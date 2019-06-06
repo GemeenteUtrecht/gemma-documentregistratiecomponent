@@ -21,7 +21,10 @@ class DRCStorageAdapter:
         if not validated_data.get('identificatie'):
             validated_data['identificatie'] = uuid4()
 
-        return self.backend.create_document(validated_data.copy(), inhoud)
+        data = self.backend.create_document(validated_data.copy(), inhoud)
+        print('FROM BACKEND::::::::')
+        print(data)
+        return data
 
     def get_documents(self):
         return self.backend.get_documents()

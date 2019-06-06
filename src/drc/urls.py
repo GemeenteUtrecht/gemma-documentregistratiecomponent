@@ -9,6 +9,7 @@ handler500 = 'drc.utils.views.server_error'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('vng_api_common.notifications.api.urls')),
     path('api/', include('drc.api.urls')),
 
     # Simply show the index template.
@@ -16,11 +17,6 @@ urlpatterns = [
     path('ref/', include('vng_api_common.urls')),
     path('ref/', include('vng_api_common.notifications.urls')),
 ]
-
-# if 'drc.cmis' in settings.INSTALLED_APPS:
-#     urlpatterns += [
-#         path('cmis/', include(('drc.cmis.urls', 'cmis'), namespace='cmis'))
-#     ]
 
 # NOTE: The staticfiles_urlpatterns also discovers static files (ie. no need to run collectstatic). Both the static
 # folder and the media folder are only served via Django if DEBUG = True.

@@ -116,13 +116,13 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet)
     - `Gebruiksrechten` - alle gebruiksrechten van het informatieobject
     """
     serializer_class = EnkelvoudigInformatieObjectSerializer
-    filterset_class = EnkelvoudigInformatieObjectFilter # TODO
+    filterset_class = EnkelvoudigInformatieObjectFilter  # TODO
     lookup_field = 'uuid'
     permission_classes = (ActionScopesRequired, )
     required_scopes = {
-        'destroy': SCOPE_DOCUMENTEN_ALLES_VERWIJDEREN, # TODO
+        'destroy': SCOPE_DOCUMENTEN_ALLES_VERWIJDEREN,  # TODO
     }
-    notifications_kanaal = KANAAL_DOCUMENTEN #TODO
+    notifications_kanaal = KANAAL_DOCUMENTEN  # TODO
 
     def list(self, request, version=None):
         documents_data = drc_storage_adapter.get_documents()
@@ -141,20 +141,23 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet)
     def create(self, request, version=None):
         serializer = EnkelvoudigInformatieObjectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.create()
+        data = serializer.create()
 
-        headers = self.get_success_headers(serializer.data)
-        response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        # self.notify(response.status_code, response.data)
-        return response
+        return_serializer = RetrieveEnkelvoudigInformatieObjectSerializer(data=data)
+        if return_serializer.is_valid():
+            headers = self.get_success_headers(return_serializer.data)
+            response = Response(return_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            # self.notify(response.status_code, response.data)
+            return response
+        return Response(return_serializer.errors, status=500)
 
     def update(self, request, uuid=None):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.update(uuid)
+        data = serializer.update(uuid)
 
         headers = self.get_success_headers(serializer.data)
-        response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        response = Response(data, status=status.HTTP_201_CREATED, headers=headers)
         # self.notify(response.status_code, response.data)
         return response
 
