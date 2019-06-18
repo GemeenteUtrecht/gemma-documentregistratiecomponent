@@ -70,7 +70,6 @@ INSTALLED_APPS = [
     'drc.api',
     'drc.backend',
     'drc.datamodel',
-    'drc.plugins',
     'drc.sync',
     'drc.utils',
 ]
@@ -375,6 +374,7 @@ IS_HTTPS = os.getenv('IS_HTTPS', '1').lower() in ['true', '1', 'yes']
 
 # settings for sending notifications
 NOTIFICATIONS_KANAAL = 'documenten'
+NOTIFICATIONS_DISABLED = False
 
 # Where to find the enkelvoudiginformatieobject
 ENKELVOUDIGINFORMATIEOBJECT_MODEL = 'datamodel.EnkelvoudigInformatieObject'
@@ -382,5 +382,5 @@ ABSTRACT_BASE_CLASS = 'drc.backend.abstract.BaseDRCStorageBackend'
 ABSTRACT_ERROR_CLASS = 'drc.backend.exceptions.BackendException'
 TEMP_DOCUMENT_CLASS = 'drc.backend.utils.TempDocument'
 
-HOST_URL = 'http://localhost:8000'
+HOST_URL = os.getenv("HOST_URL", 'http://localhost:8000')
 DEFAULT_NOTIFICATIONS_HANDLER = 'drc_cmis.notifications.default'

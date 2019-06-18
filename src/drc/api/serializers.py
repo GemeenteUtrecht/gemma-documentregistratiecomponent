@@ -3,19 +3,14 @@ Serializers of the Document Registratie Component REST API
 """
 import logging
 
-from django.conf import settings
-from django.contrib.sites.shortcuts import get_current_site
 from django.utils.encoding import force_text
-from django.utils.module_loading import import_string
 from django.utils.translation import ugettext_lazy as _
 
 from drf_extra_fields.fields import Base64FileField
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from rest_framework.settings import api_settings
 from vng_api_common.constants import ObjectTypes, VertrouwelijkheidsAanduiding
 from vng_api_common.fields import LANGUAGE_CHOICES
-from vng_api_common.models import APICredential
 from vng_api_common.serializers import GegevensGroepSerializer
 from vng_api_common.validators import IsImmutableValidator, URLValidator
 
@@ -66,19 +61,17 @@ class BaseEnkelvoudigInformatieObjectSerializer(serializers.Serializer):
     formaat = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True, help_text='De code voor de wijze waarop de inhoud van het ENKELVOUDIG INFORMATIEOBJECT is vastgelegd in een computerbestand.')
     taal = serializers.ChoiceField(choices=LANGUAGE_CHOICES, allow_blank=True, allow_null=True, help_text='Een taal van de intellectuele inhoud van het ENKELVOUDIG INFORMATIEOBJECT. De waardes komen uit ISO 639-2/B')
     bestandsnaam = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True, help_text='De naam van het fysieke bestand waarin de inhoud van het informatieobject is vastgelegd, inclusief extensie.')
-    inhoud = AnyBase64File()
     link = serializers.URLField(max_length=200, required=False, allow_blank=True, allow_null=True, help_text='De URL waarmee de inhoud van het INFORMATIEOBJECT op te vragen is.')
     beschrijving = serializers.CharField(max_length=1000, required=False, allow_blank=True, allow_null=True, help_text='Een generieke beschrijving van de inhoud van het INFORMATIEOBJECT.')
     ontvangstdatum = serializers.DateField(required=False, allow_null=True, help_text='De datum waarop het INFORMATIEOBJECT ontvangen is. Verplicht te registreren voor INFORMATIEOBJECTen die van buiten de zaakbehandelende organisatie(s) ontvangen zijn. Ontvangst en verzending is voorbehouden aan documenten die van of naar andere personen ontvangen of verzonden zijn waarbij die personen niet deel uit maken van de behandeling van de zaak waarin het document een rol speelt.')
     verzenddatum = serializers.DateField(required=False, allow_null=True, help_text='De datum waarop het INFORMATIEOBJECT verzonden is, zoals deze op het INFORMATIEOBJECT vermeld is. Dit geldt voor zowel inkomende als uitgaande INFORMATIEOBJECTen. Eenzelfde informatieobject kan niet tegelijk inkomend en uitgaand zijn. Ontvangst en verzending is voorbehouden aan documenten die van of naar andere personen ontvangen of verzonden zijn waarbij die personen niet deel uit maken van de behandeling van de zaak waarin het document een rol speelt.')
     indicatie_gebruiksrecht = serializers.NullBooleanField(required=False, help_text="Indicatie of er beperkingen gelden aangaande het gebruik van het informatieobject anders dan raadpleging. Dit veld mag 'null' zijn om aan te geven dat de indicatie nog niet bekend is. Als de indicatie gezet is, dan kan je de gebruiksrechten die van toepassing zijn raadplegen via de Gebruiksrechten resource.")
     informatieobjecttype = serializers.URLField(max_length=200, allow_null=True, help_text='URL naar de INFORMATIEOBJECTTYPE in het ZTC.')
-    # TODO: validator!
-    # ondertekening = OndertekeningSerializer(
-    #     label=_("ondertekening"), allow_null=True, required=False,
-    #     help_text=_("Aanduiding van de rechtskracht van een informatieobject. Mag niet van een waarde "
-    #                 "zijn voorzien als de `status` de waarde 'in bewerking' of 'ter vaststelling' heeft.")
-    # )
+    ondertekening = OndertekeningSerializer(
+        label=_("ondertekening"), allow_null=True, required=False,
+        help_text=_("Aanduiding van de rechtskracht van een informatieobject. Mag niet van een waarde "
+                    "zijn voorzien als de `status` de waarde 'in bewerking' of 'ter vaststelling' heeft.")
+    )
     # integriteit = IntegriteitSerializer(
     #     label=_("integriteit"), allow_null=True, required=False,
     #     help_text=_("Uitdrukking van mate van volledigheid en onbeschadigd zijn van digitaal bestand.")
@@ -87,11 +80,14 @@ class BaseEnkelvoudigInformatieObjectSerializer(serializers.Serializer):
 
 
 class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSerializer):
+    inhoud = AnyBase64File()
+
     def create(self):
         """
         Handle the create calls.
         """
-        return drc_storage_adapter.create_enkelvoudiginformatieobject(self.validated_data.copy())
+        doc = drc_storage_adapter.create_enkelvoudiginformatieobject(self.validated_data.copy())
+        return doc
 
     def update(self, identificatie):
         """
@@ -103,7 +99,14 @@ class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSeria
 class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSerializer):
     # Add extra fields that are used in the return
     url = serializers.URLField(max_length=200, allow_blank=True, allow_null=True)
+    inhoud = serializers.URLField(max_length=200, allow_blank=True, allow_null=True)
     bestandsomvang = serializers.IntegerField(min_value=0)
+
+    def create(self):
+        raise NotImplementedError('This should not be used')
+
+    def update(self, identificatie):
+        raise NotImplementedError('This should not be used')
 
 
 class ObjectInformatieObjectSerializer(serializers.Serializer):
@@ -115,7 +118,7 @@ class ObjectInformatieObjectSerializer(serializers.Serializer):
         read_only=True, choices=[(force_text(value), key) for key, value in RelatieAarden.choices]
     )
     titel = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False, help_text='De naam waaronder het INFORMATIEOBJECT binnen het OBJECT bekend is.')
-    beschrijving = serializers.URLField(allow_blank=True, allow_null=True, required=False, help_text='Een op het object gerichte beschrijving van de inhoud vanhet INFORMATIEOBJECT.')
+    beschrijving = serializers.CharField(required=False, allow_blank=True)
     registratiedatum = serializers.DateTimeField(read_only=True, allow_null=True, help_text='De datum waarop de behandelende organisatie het INFORMATIEOBJECT heeft geregistreerd bij het OBJECT. Geldige waardes zijn datumtijden gelegen op of voor de huidige datum en tijd.')
 
     # TODO: valideer dat ObjectInformatieObject.informatieobjecttype hoort

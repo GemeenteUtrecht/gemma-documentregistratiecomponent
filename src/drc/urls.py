@@ -11,6 +11,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('vng_api_common.notifications.api.urls')),
     path('api/', include('drc.api.urls')),
+    path('backend/', include('drc.backend.urls')),
 
     # Simply show the index template.
     path('', TemplateView.as_view(template_name='index.html')),

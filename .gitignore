@@ -42,3 +42,5 @@ alfresco/*.log*
 alfresco/*.zip
 
 coverage\.xml
+XDG_CACHE_HOME/
+.python-version

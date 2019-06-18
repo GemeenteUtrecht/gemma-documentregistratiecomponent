@@ -22,12 +22,11 @@ class DRCStorageAdapter:
             validated_data['identificatie'] = uuid4()
 
         data = self.backend.create_document(validated_data.copy(), inhoud)
-        print('FROM BACKEND::::::::')
-        print(data)
         return data
 
-    def get_documents(self):
-        return self.backend.get_documents()
+    def get_documents(self, filters):
+        print(filters)
+        return self.backend.get_documents(filters)
 
     def update_enkenvoudiginformatieobject(self, validated_data, identificatie):
         inhoud = validated_data.pop('inhoud')
@@ -41,6 +40,9 @@ class DRCStorageAdapter:
 
     def create_objectinformatieobject(self, validated_data):
         return self.backend.create_case_link(validated_data.copy())
+
+    def delete_document(self, uuid):
+        return self.backend.delete_document(uuid)
 
     # def get_folder(self, zaak_url):
     #     for backend in self.get_backends():
