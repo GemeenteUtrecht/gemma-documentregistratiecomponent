@@ -11,11 +11,12 @@ from rest_framework import serializers
 from rest_framework.settings import api_settings
 from vng_api_common.constants import ObjectTypes, VertrouwelijkheidsAanduiding
 from vng_api_common.fields import LANGUAGE_CHOICES
-from vng_api_common.serializers import GegevensGroepSerializer
 from vng_api_common.validators import IsImmutableValidator, URLValidator
 
 from drc.backend import drc_storage_adapter
-from drc.datamodel.constants import RelatieAarden, Statussen
+from drc.datamodel.constants import (
+    ChecksumAlgoritmes, OndertekeningSoorten, RelatieAarden, Statussen
+)
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, Gebruiksrechten, ObjectInformatieObject
 )
@@ -38,13 +39,16 @@ class AnyBase64File(Base64FileField):
         return "bin"
 
 
-class IntegriteitSerializer(GegevensGroepSerializer):
-    class Meta:
-        model = EnkelvoudigInformatieObject
-        gegevensgroep = 'integriteit'
+class IntegriteitSerializer(serializers.Serializer):
+    algoritme = serializers.ChoiceField(choices=ChecksumAlgoritmes.choices, help_text=_("Aanduiding van algoritme, gebruikt om de checksum te maken."))
+    waarde = serializers.CharField(min_length=1, max_length=128, help_text=_("De waarde van de checksum."))
+    datum = serializers.DateField(help_text=_("Datum waarop de checksum is gemaakt."))
 
 
-class OndertekeningSerializer(GegevensGroepSerializer):
+class OndertekeningSerializer(serializers.Serializer):
+    soort = serializers.ChoiceField(choices=OndertekeningSoorten.choices, help_text=_("Aanduiding van de wijze van ondertekening van het INFORMATIEOBJECT"))
+    datum = serializers.DateField(help_text=_("De datum waarop de ondertekening van het INFORMATIEOBJECT heeft plaatsgevonden."))
+
     class Meta:
         model = EnkelvoudigInformatieObject
         gegevensgroep = 'ondertekening'
@@ -72,10 +76,10 @@ class BaseEnkelvoudigInformatieObjectSerializer(serializers.Serializer):
         help_text=_("Aanduiding van de rechtskracht van een informatieobject. Mag niet van een waarde "
                     "zijn voorzien als de `status` de waarde 'in bewerking' of 'ter vaststelling' heeft.")
     )
-    # integriteit = IntegriteitSerializer(
-    #     label=_("integriteit"), allow_null=True, required=False,
-    #     help_text=_("Uitdrukking van mate van volledigheid en onbeschadigd zijn van digitaal bestand.")
-    # )
+    integriteit = IntegriteitSerializer(
+        label=_("integriteit"), allow_null=True, required=False,
+        help_text=_("Uitdrukking van mate van volledigheid en onbeschadigd zijn van digitaal bestand.")
+    )
     # TODO: Validate that the urls are validated against the ZTC
 
 
@@ -86,14 +90,14 @@ class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSeria
         """
         Handle the create calls.
         """
-        doc = drc_storage_adapter.create_enkelvoudiginformatieobject(self.validated_data.copy())
+        doc = drc_storage_adapter.creeer_enkelvoudiginformatieobject(self.validated_data.copy())
         return doc
 
     def update(self, identificatie):
         """
         Handle the update calls.
         """
-        return drc_storage_adapter.update_enkelvoudiginformatieobject(self.validated_data.copy(), identificatie)
+        return drc_storage_adapter.update_enkenvoudiginformatieobject(identificatie, self.validated_data.copy())
 
 
 class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSerializer):
@@ -114,7 +118,7 @@ class ObjectInformatieObjectSerializer(serializers.Serializer):
     informatieobject = serializers.URLField(allow_blank=True, allow_null=True)
     object = serializers.URLField(max_length=200, allow_blank=True, allow_null=True, help_text="URL naar het gerelateerde OBJECT.")
     object_type = serializers.ChoiceField(allow_blank=True, allow_null=True, choices=ObjectTypes.choices)
-    aard_relatie_weergave = serializers.ChoiceField(
+    aard_relatie = serializers.ChoiceField(
         read_only=True, choices=[(force_text(value), key) for key, value in RelatieAarden.choices]
     )
     titel = serializers.CharField(max_length=200, allow_blank=True, allow_null=True, required=False, help_text='De naam waaronder het INFORMATIEOBJECT binnen het OBJECT bekend is.')
@@ -182,21 +186,21 @@ class ObjectInformatieObjectSerializer(serializers.Serializer):
         """
         Handle backend calls.
         """
-        drc_storage_adapter.create_objectinformatieobject(self.validated_data.copy())
+        drc_storage_adapter.creeer_objectinformatieobject(self.validated_data.copy())
 
     def update(self, instance, validated_data):
         """
         Handle backend calls.
         """
-        old_location = instance.object
+        # TODO: Fix this!!
+        # old_location = instance.object
 
-        oio = super().update(instance, validated_data)
 
-        if old_location != oio.object:
-            drc_storage_adapter.create_folder(oio.object)
-            drc_storage_adapter.move_document(oio.informatieobject, oio.object)
+        # if old_location != oio.object:
+        #     drc_storage_adapter.create_folder(oio.object)
+        #     drc_storage_adapter.move_document(oio.informatieobject, oio.object)
 
-        return oio
+        return None
 
 
 # class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):

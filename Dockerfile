@@ -1,5 +1,5 @@
 # Stage 1 - Compile needed python dependencies
-FROM python:3.6-alpine AS build
+FROM python:3.7-alpine AS build
 RUN apk --no-cache add \
     gcc \
     musl-dev \
@@ -45,7 +45,7 @@ FROM build AS jenkins
 RUN apk --no-cache add \
     postgresql-client
 
-COPY --from=build /usr/local/lib/python3.6 /usr/local/lib/python3.6
+COPY --from=build /usr/local/lib/python3.7 /usr/local/lib/python3.7
 COPY --from=build /app/requirements /app/requirements
 
 RUN pip install -r requirements/jenkins.txt --exists-action=s
@@ -63,7 +63,7 @@ CMD ["/runtests.sh"]
 
 
 # Stage 4 - Build docker image suitable for execution and deployment
-FROM python:3.6-alpine AS production
+FROM python:3.7-alpine AS production
 RUN apk --no-cache add \
     ca-certificates \
     make \
@@ -80,7 +80,7 @@ RUN apk --no-cache add \
     # required for swagger2openapi conversion
     nodejs
 
-COPY --from=build /usr/local/lib/python3.6 /usr/local/lib/python3.6
+COPY --from=build /usr/local/lib/python3.7 /usr/local/lib/python3.7
 COPY --from=build /usr/local/bin/uwsgi /usr/local/bin/uwsgi
 COPY --from=build /usr/local/bin/sphinx-build /usr/local/bin/sphinx-build
 # required for swagger2openapi conversion

@@ -118,13 +118,12 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin
     - `Gebruiksrechten` - alle gebruiksrechten van het informatieobject
     """
     serializer_class = EnkelvoudigInformatieObjectSerializer
-    filterset_class = EnkelvoudigInformatieObjectFilter  # TODO
+    filterset_class = EnkelvoudigInformatieObjectFilter
     lookup_field = 'uuid'
     permission_classes = (ActionScopesRequired, )
     required_scopes = {
         'destroy': SCOPE_DOCUMENTEN_ALLES_VERWIJDEREN,
     }
-    # TODO: Update the notifications file from vng-api-common and the kalalen in notifications.
     notifications_kanaal = KANAAL_DOCUMENTEN
     notifications_resource = 'enkelvoudiginformatieobject'
     notifications_model = EnkelvoudigInformatieObject
@@ -134,40 +133,35 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin
         if not filters.is_valid():
             return Response(filters.errors, status=400)
 
-        documents_data = drc_storage_adapter.get_documents(filters=filters.form.cleaned_data)
-        serializer = RetrieveEnkelvoudigInformatieObjectSerializer(data=documents_data, many=True)
-        if serializer.is_valid():
-            return Response(serializer.initial_data)
-        return Response({"message": "invalid data"}, status=500)
+        documents_data = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(filters=filters.form.cleaned_data)
+        serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=documents_data, many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, uuid=None, version=None):
-        document_data = drc_storage_adapter.get_document(uuid=uuid)
-        serializer = RetrieveEnkelvoudigInformatieObjectSerializer(data=document_data)
-        if serializer.is_valid():
-            return Response(serializer.initial_data)
-        return Response({"message": "invalid data"}, status=500)
+        document_data = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
+        serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=document_data)
+        return Response(serializer.data)
 
     def create(self, request, version=None):
         serializer = EnkelvoudigInformatieObjectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.create()
-        return_serializer = RetrieveEnkelvoudigInformatieObjectSerializer(data=asdict(data))
-        if return_serializer.is_valid():
-            headers = self.get_success_headers(return_serializer.data)
-            response = Response(return_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-            self.notify(response.status_code, data)
-            return response
-        print(return_serializer.errors)
-        return Response(return_serializer.errors, status=500)
+
+        return_serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=data)
+        headers = self.get_success_headers(return_serializer.data)
+        response = Response(return_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        self.notify(response.status_code, data)
+        return response
 
     def update(self, request, uuid=None):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.update(uuid)
 
-        headers = self.get_success_headers(serializer.data)
-        response = Response(data, status=status.HTTP_200_OK, headers=headers)
-        self.notify(response.status_code, response.data)
+        return_serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=data)
+        headers = self.get_success_headers(return_serializer.data)
+        response = Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
+        self.notify(response.status_code, data)
         return response
 
     def partial_update(self, request, uuid=None):
@@ -175,13 +169,14 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin
         serializer.is_valid(raise_exception=True)
         data = serializer.update(uuid)
 
-        headers = self.get_success_headers(serializer.data)
-        response = Response(data, status=status.HTTP_200_OK, headers=headers)
-        self.notify(response.status_code, response.data)
+        return_serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=data)
+        headers = self.get_success_headers(return_serializer.data)
+        response = Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
+        self.notify(response.status_code, data)
         return response
 
     def destroy(self, request, uuid=None):
-        data = drc_storage_adapter.delete_document(uuid)
+        data = drc_storage_adapter.verwijder_enkelvoudiginformatieobject(uuid)
         response = Response(status=204)
         self.notify(response.status_code, data)
         return response
@@ -255,19 +250,15 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet):
     notifications_kanaal = KANAAL_DOCUMENTEN # TODO
     notifications_main_resource_key = 'informatieobject' # TODO
 
-    # TODO
     def list(self, request, version=None):
-        documents_data = drc_storage_adapter.get_document_cases()
-        serializer = ObjectInformatieObjectSerializer(data=documents_data, many=True)
-        if serializer.is_valid():
-            return Response(serializer.initial_data)
-        assert False, serializer.errors
-        return Response({"message": "invalid data"}, status=500)
+        documents_data = drc_storage_adapter.lees_objectinformatieobjecten()
+        serializer = ObjectInformatieObjectSerializer(instance=documents_data, many=True)
+        return Response(serializer.data)
 
     # TODO
     def retrieve(self, request, uuid=None, version=None):
-        document_data = drc_storage_adapter.get_document(uuid=uuid)
-        serializer = ObjectInformatieObjectSerializer(data=document_data)
+        document_data = drc_storage_adapter.lees_objectinformatieobject(uuid)
+        serializer = ObjectInformatieObjectSerializer(instance=document_data)
         if serializer.is_valid():
             return Response(serializer.initial_data)
         assert False, serializer.errors

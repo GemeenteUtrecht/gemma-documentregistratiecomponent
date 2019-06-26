@@ -28,3 +28,15 @@ class EnkelvoudigInformatieObject:
     integriteit_algoritme: str
     integriteit_waarde: str
     bestandsomvang: str
+
+
+@dataclass
+class ObjectInformatieObject:
+    url: str
+    informatieobject: str
+    object: str
+    object_type: str
+    aard_relatie: str
+    titel: str
+    beschrijving: str
+    registratiedatum: str

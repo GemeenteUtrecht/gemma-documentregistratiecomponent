@@ -180,6 +180,17 @@ class EnkelvoudigInformatieObject(InformatieObject):
         'datum': integriteit_datum,
     })
 
+    @property
+    def bestandsomvang(self):
+        if self.inhoud:
+            return self.inhoud.size
+        return None
+
+    @property
+    def url(self):
+        path = reverse('enkelvoudiginformatieobjecten-detail', kwargs={'version': '1', 'uuid': self.uuid})
+        return f"{settings.HOST_URL}{path}"
+
 
 class Gebruiksrechten(models.Model):
     uuid = models.UUIDField(

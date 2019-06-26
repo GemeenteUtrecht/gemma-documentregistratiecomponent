@@ -19,7 +19,7 @@ class SyncError(Exception):
 
 def sync(relation: ObjectInformatieObject, operation: str):
     # build the URL of the informatieobject
-    path = reverse('enkelvoudiginformatieobject-detail', kwargs={
+    path = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
         'version': settings.REST_FRAMEWORK['DEFAULT_VERSION'],
         'uuid': relation.informatieobject.uuid,
     })
