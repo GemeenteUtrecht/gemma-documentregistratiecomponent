@@ -366,6 +366,18 @@ if SENTRY_DSN:
             'dsn': RAVEN_CONFIG['dsn']
         },
     })
+    LOGGING['loggers'].update({
+        '': {
+            'handlers': ['sentry'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['django'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    })
 
 #
 # SSL or not?
