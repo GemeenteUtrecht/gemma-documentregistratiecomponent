@@ -121,6 +121,7 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin
     serializer_class = EnkelvoudigInformatieObjectSerializer
     filterset_class = EnkelvoudigInformatieObjectFilter
     lookup_field = 'uuid'
+    lookup_url_kwarg = 'uuid'
     permission_classes = (ActionScopesRequired, )
     required_scopes = {
         'destroy': SCOPE_DOCUMENTEN_ALLES_VERWIJDEREN,
