@@ -252,6 +252,7 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, vie
     notifications_kanaal = KANAAL_DOCUMENTEN
     notifications_resource = 'informatieobject'
     notifications_model = ObjectInformatieObject
+    notifications_main_resource_key = 'informatieobject'
 
     def list(self, request, version=None):
         documents_data = drc_storage_adapter.lees_objectinformatieobjecten()
