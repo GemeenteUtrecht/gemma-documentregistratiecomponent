@@ -13,6 +13,7 @@ from drc.backend import drc_storage_adapter
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, Gebruiksrechten, ObjectInformatieObject
 )
+from drc.sync.signals import oio_change
 
 from .filters import (
     EnkelvoudigInformatieObjectFilter, GebruiksrechtenFilter,
@@ -188,7 +189,7 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin
             return {}
 
 
-class ObjectInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet):
+class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, viewsets.ViewSet):
     """
     Beheer relatie tussen InformatieObject en OBJECT.
 
@@ -247,42 +248,42 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, viewsets.ViewSet):
     serializer_class = ObjectInformatieObjectSerializer
     filterset_class = ObjectInformatieObjectFilter # TODO
     lookup_field = 'uuid'
-    notifications_kanaal = KANAAL_DOCUMENTEN # TODO
-    notifications_main_resource_key = 'informatieobject' # TODO
+
+    notifications_kanaal = KANAAL_DOCUMENTEN
+    notifications_resource = 'informatieobject'
+    notifications_model = ObjectInformatieObject
 
     def list(self, request, version=None):
         documents_data = drc_storage_adapter.lees_objectinformatieobjecten()
         serializer = ObjectInformatieObjectSerializer(instance=documents_data, many=True)
         return Response(serializer.data)
 
-    # TODO
     def retrieve(self, request, uuid=None, version=None):
         document_data = drc_storage_adapter.lees_objectinformatieobject(uuid)
         serializer = ObjectInformatieObjectSerializer(instance=document_data)
-        if serializer.is_valid():
-            return Response(serializer.initial_data)
-        assert False, serializer.errors
-        return Response({"message": "invalid data"}, status=500)
+        return Response(serializer.data)
 
     def create(self, request, version=None):
         serializer = ObjectInformatieObjectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.create()
+        oio = serializer.create()
 
         headers = self.get_success_headers(serializer.data)
         response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        # self.notify(response.status_code, response.data)
+        oio_change.send(sender=self.__class__, instance=oio)
+        self.notify(response.status_code, response.data)
         return response
 
     # TODO
     def update(self, request, uuid=None):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.update(uuid)
+        oio = serializer.update(uuid)
 
         headers = self.get_success_headers(serializer.data)
         response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        # self.notify(response.status_code, response.data)
+        oio_change.send(sender=self.__class__, instance=oio)
+        self.notify(response.status_code, response.data)
         return response
 
     # TODO

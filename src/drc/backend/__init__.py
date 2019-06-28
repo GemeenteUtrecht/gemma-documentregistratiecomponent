@@ -11,8 +11,8 @@ class DRCStorageAdapter:
     def __init__(self):
         self.backend = import_instance('drc.backend.django.DjangoDRCStorageBackend')
 
-        # if settings.CMIS_ENABLED:
-        #     self.backend = import_instance('drc_cmis.backend.CMISDRCStorageBackend')
+        if settings.CMIS_ENABLED:
+            self.backend = import_instance('drc_cmis.backend.CMISDRCStorageBackend')
 
     # Documenten
     def creeer_enkelvoudiginformatieobject(self, gevalideerde_data):

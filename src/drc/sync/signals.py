@@ -2,7 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.sites.models import Site
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import Signal, post_delete, post_save
 from django.dispatch import receiver
 from django.urls import reverse
 
@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 class SyncError(Exception):
     pass
+
+
+oio_change = Signal(providing_args=["instance"])
 
 
 def sync(relation: ObjectInformatieObject, operation: str):
@@ -60,7 +63,7 @@ def sync_delete(relation: ObjectInformatieObject):
     sync(relation, 'delete')
 
 
-@receiver([post_save, post_delete], sender=ObjectInformatieObject, dispatch_uid='sync.sync_informatieobject_relation')
+@receiver([oio_change], dispatch_uid='sync.sync_informatieobject_relation')
 def sync_informatieobject_relation(sender, instance: ObjectInformatieObject=None, **kwargs):
     signal = kwargs['signal']
     if signal is post_save and kwargs.get('created', False):
