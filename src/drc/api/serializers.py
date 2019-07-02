@@ -186,7 +186,7 @@ class ObjectInformatieObjectSerializer(serializers.Serializer):
         """
         Handle backend calls.
         """
-        drc_storage_adapter.creeer_objectinformatieobject(self.validated_data.copy())
+        return drc_storage_adapter.creeer_objectinformatieobject(self.validated_data.copy())
 
     def update(self, instance, validated_data):
         """

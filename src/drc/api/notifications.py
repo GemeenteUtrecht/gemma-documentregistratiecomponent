@@ -77,7 +77,7 @@ class NotificationMixin(metaclass=NotificationMixinBase):
         """
         # using the main resource name, look up what the URL to this
         # object is/should be
-        return data[self.get_main_resource_key(kanaal)]
+        return getattr(data, self.get_main_resource_key(kanaal))
 
     def get_model(self):
         return self.notifications_model
@@ -106,10 +106,17 @@ class NotificationMixin(metaclass=NotificationMixinBase):
             main_object_url = data.url
         else:
             # lookup the main object from the URL
+            print(data)
+            print(self.get_main_resource_key(kanaal))
             main_object_url = self.get_notification_main_object_url(data, kanaal)
             main_object_path = urlparse(main_object_url).path
             main_object = get_resource_for_path(main_object_path)
-
+            print(dir(main_object))
+        print('= TEST ==================================================')
+        print(data)
+        print(main_object)
+        print(main_object_url)
+        print('= END TEST ==================================================')
         message_data = {
             'kanaal': kanaal.label,
             'hoofd_object': main_object_url,

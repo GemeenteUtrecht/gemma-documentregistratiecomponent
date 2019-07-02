@@ -139,9 +139,12 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin
         serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=documents_data, many=True)
         return Response(serializer.data)
 
+    def get_object(self, **kwargs):
+        document_data = drc_storage_adapter.lees_enkelvoudiginformatieobject(kwargs.get('uuid'))
+        return document_data
+
     def retrieve(self, request, uuid=None, version=None):
-        document_data = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
-        serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=document_data)
+        serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=self.get_object(uuid=uuid))
         return Response(serializer.data)
 
     def create(self, request, version=None):
@@ -273,7 +276,7 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, vie
         headers = self.get_success_headers(serializer.data)
         response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         oio_change.send(sender=self.__class__, instance=oio)
-        self.notify(response.status_code, response.data)
+        self.notify(response.status_code, oio)
         return response
 
     # TODO
@@ -285,7 +288,7 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, vie
         headers = self.get_success_headers(serializer.data)
         response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         oio_change.send(sender=self.__class__, instance=oio)
-        self.notify(response.status_code, response.data)
+        self.notify(response.status_code, oio)
         return response
 
     # TODO
