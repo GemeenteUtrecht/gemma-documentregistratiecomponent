@@ -1,13 +1,10 @@
-from dataclasses import asdict
+import logging
 
-from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from vng_api_common.notifications.viewsets import NotificationViewSetMixin
 from vng_api_common.permissions import ActionScopesRequired
-from vng_api_common.serializers import ValidatieFoutSerializer
-from vng_api_common.viewsets import CheckQueryParamsMixin
 
 from drc.backend import drc_storage_adapter
 from drc.datamodel.models import (
@@ -27,6 +24,8 @@ from .serializers import (
     ObjectInformatieObjectSerializer,
     RetrieveEnkelvoudigInformatieObjectSerializer
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SerializerClassMixin:
@@ -158,7 +157,7 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin
         self.notify(response.status_code, data)
         return response
 
-    def update(self, request, uuid=None):
+    def update(self, request, uuid=None, version=None):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.update(uuid)
@@ -169,8 +168,8 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin
         self.notify(response.status_code, data)
         return response
 
-    def partial_update(self, request, uuid=None):
-        serializer = self.get_serializer(data=request.data)
+    def partial_update(self, request, uuid=None, version=None):
+        serializer = self.get_serializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.update(uuid)
 
@@ -180,9 +179,9 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin
         self.notify(response.status_code, data)
         return response
 
-    def destroy(self, request, uuid=None):
+    def destroy(self, request, uuid=None, version=None):
         data = drc_storage_adapter.verwijder_enkelvoudiginformatieobject(uuid)
-        response = Response(status=204)
+        response = Response(status=status.HTTP_204_NO_CONTENT)
         self.notify(response.status_code, data)
         return response
 
@@ -280,28 +279,40 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, vie
         return response
 
     # TODO
-    def update(self, request, uuid=None):
-        serializer = self.get_serializer(data=request.data)
+    def update(self, request, uuid=None, version=None):
+        print(request.data)
+        serializer = ObjectInformatieObjectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        logger.error(dict(serializer.errors))
         oio = serializer.update(uuid)
 
         headers = self.get_success_headers(serializer.data)
-        response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        response = Response(serializer.data, status=status.HTTP_200_OK, headers=headers)
         oio_change.send(sender=self.__class__, instance=oio)
         self.notify(response.status_code, oio)
         return response
 
     # TODO
-    def partial_update(self, request, uuid=None):
-        # self.notify(response.status_code, response.data)
+    def partial_update(self, request, uuid=None, version=None):
+        logger.error(request.data)
+        serializer = ObjectInformatieObjectSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            assert False, serializer.errors
+        logger.error(dir(serializer))
+        logger.error(serializer.data)
+        logger.error(serializer.validated_data)
+        oio = serializer.update(uuid)
+
+        headers = self.get_success_headers(serializer.data)
+        response = Response(serializer.data, status=status.HTTP_200_OK, headers=headers)
+        oio_change.send(sender=self.__class__, instance=oio)
+        self.notify(response.status_code, oio)
         return response
 
-    # TODO
-    def destroy(self, request, uuid=None):
-        # get data via serializer
-        instance = self.get_object()
-        data = self.get_serializer(instance).data
-        # self.notify(response.status_code, data, instance=instance)
+    def destroy(self, request, uuid=None, version=None):
+        oio = drc_storage_adapter.verwijder_objectinformatieobject(uuid)
+        response = Response({}, status=status.HTTP_204_NO_CONTENT)
+        self.notify(response.status_code, oio)
         return response
 
     def get_success_headers(self, data):

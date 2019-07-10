@@ -103,20 +103,14 @@ class NotificationMixin(metaclass=NotificationMixinBase):
 
         if model is kanaal.main_resource:
             main_object = self.get_main_object(data, instance)
+            logger.warning(data)
             main_object_url = data.url
         else:
             # lookup the main object from the URL
-            print(data)
-            print(self.get_main_resource_key(kanaal))
             main_object_url = self.get_notification_main_object_url(data, kanaal)
             main_object_path = urlparse(main_object_url).path
             main_object = get_resource_for_path(main_object_path)
-            print(dir(main_object))
-        print('= TEST ==================================================')
-        print(data)
-        print(main_object)
-        print(main_object_url)
-        print('= END TEST ==================================================')
+
         message_data = {
             'kanaal': kanaal.label,
             'hoofd_object': main_object_url,
@@ -139,7 +133,6 @@ class NotificationMixin(metaclass=NotificationMixinBase):
             return
 
         logger.warning(data)
-        print(data)
 
         # do nothing unless we have a 'success' status code - early exit here
         if not 200 <= status_code < 300:

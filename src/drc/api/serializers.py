@@ -90,8 +90,7 @@ class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSeria
         """
         Handle the create calls.
         """
-        doc = drc_storage_adapter.creeer_enkelvoudiginformatieobject(self.validated_data.copy())
-        return doc
+        return drc_storage_adapter.creeer_enkelvoudiginformatieobject(self.validated_data.copy())
 
     def update(self, identificatie):
         """
@@ -115,8 +114,13 @@ class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObj
 
 class ObjectInformatieObjectSerializer(serializers.Serializer):
     url = serializers.URLField(allow_blank=True, allow_null=True, required=False)
+
+    # Should be imutable
     informatieobject = serializers.URLField(allow_blank=True, allow_null=True)
+
     object = serializers.URLField(max_length=200, allow_blank=True, allow_null=True, help_text="URL naar het gerelateerde OBJECT.")
+
+    # Should be imutable
     object_type = serializers.ChoiceField(allow_blank=True, allow_null=True, choices=ObjectTypes.choices)
     aard_relatie = serializers.ChoiceField(
         read_only=True, choices=[(force_text(value), key) for key, value in RelatieAarden.choices]
@@ -153,11 +157,11 @@ class ObjectInformatieObjectSerializer(serializers.Serializer):
         if not hasattr(self, 'initial_data'):
             return
 
-        if isinstance(self.initial_data, list):
-            for initial_data in self.initial_data:
-                self.check_data(initial_data)
-        else:
-            self.check_data(self.initial_data)
+        # if isinstance(self.initial_data, list):
+        #     for initial_data in self.initial_data:
+        #         self.check_data(initial_data)
+        # else:
+        #     self.check_data(self.initial_data)
 
     def check_data(self, initial_data):
         object_type = initial_data.get('object_type')
@@ -167,40 +171,18 @@ class ObjectInformatieObjectSerializer(serializers.Serializer):
             del self.fields['beschrijving']
             del self.fields['registratiedatum']
 
-    def save(self, **kwargs):
-        # can't slap a transaction atomic on this, since ZRC/BRC query for the
-        # relation!
-        try:
-            return super().save(**kwargs)
-        except SyncError as sync_error:
-            # delete the object again
-            ObjectInformatieObject.objects.filter(
-                informatieobject=self.validated_data['informatieobject'],
-                object=self.validated_data['object']
-            )._raw_delete('default')
-            raise serializers.ValidationError({
-                api_settings.NON_FIELD_ERRORS_KEY: sync_error.args[0]
-            }) from sync_error
-
     def create(self):
         """
         Handle backend calls.
         """
         return drc_storage_adapter.creeer_objectinformatieobject(self.validated_data.copy())
 
-    def update(self, instance, validated_data):
+    def update(self, identificatie):
         """
         Handle backend calls.
         """
-        # TODO: Fix this!!
-        # old_location = instance.object
-
-
-        # if old_location != oio.object:
-        #     drc_storage_adapter.create_folder(oio.object)
-        #     drc_storage_adapter.move_document(oio.informatieobject, oio.object)
-
-        return None
+        assert False, self.validated_data
+        return drc_storage_adapter.update_objectinformatieobject(identificatie, self.validated_data.copy())
 
 
 # class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):

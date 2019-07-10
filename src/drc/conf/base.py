@@ -17,7 +17,7 @@ BASE_DIR = os.path.abspath(os.path.join(DJANGO_PROJECT_DIR, os.path.pardir, os.p
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-CMIS_ENABLED = os.getenv('CMIS_ENABLED', os.getenv('ENABLE_CMIS', False))
+CMIS_ENABLED = os.getenv('CMIS_ENABLED', os.getenv('CMIS_ENABLED', False))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False

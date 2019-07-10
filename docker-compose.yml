@@ -13,7 +13,7 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=drc.conf.docker
       - SECRET_KEY=${SECRET_KEY}
-      - ENABLE_CMIS=True
+      - CMIS_ENABLED=True
       - IS_HTTPS=False
     ports:
       - 8000:8000

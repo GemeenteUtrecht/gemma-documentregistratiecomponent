@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from django.conf import settings
+from django.utils import timezone
 
 from import_class import import_class, import_instance
 
@@ -32,7 +33,7 @@ class DRCStorageAdapter:
         return self.backend.get_document(identification=identificatie)
 
     def update_enkenvoudiginformatieobject(self, identificatie, gevalideerde_data):
-        inhoud = gevalideerde_data.pop('inhoud')
+        inhoud = gevalideerde_data.pop('inhoud', None)
         return self.backend.update_document(
             identification=identificatie,
             data=gevalideerde_data.copy(),
@@ -44,6 +45,7 @@ class DRCStorageAdapter:
 
     # Connecties
     def creeer_objectinformatieobject(self, gevalideerde_data):
+        gevalideerde_data['registratiedatum'] = timezone.now()
         return self.backend.create_document_case_connection(data=gevalideerde_data.copy())
 
     def lees_objectinformatieobjecten(self):
