@@ -278,7 +278,6 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, vie
         self.notify(response.status_code, oio)
         return response
 
-    # TODO
     def update(self, request, uuid=None, version=None):
         print(request.data)
         serializer = ObjectInformatieObjectSerializer(data=request.data)
@@ -292,7 +291,6 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, vie
         self.notify(response.status_code, oio)
         return response
 
-    # TODO
     def partial_update(self, request, uuid=None, version=None):
         logger.error(request.data)
         serializer = ObjectInformatieObjectSerializer(data=request.data, partial=True)

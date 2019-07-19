@@ -2,18 +2,19 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.utils import timezone
-
-from import_class import import_class, import_instance
+from django.utils.module_loading import import_string
 
 
 class DRCStorageAdapter:
     backends = []
 
     def __init__(self):
-        self.backend = import_instance('drc.backend.django.DjangoDRCStorageBackend')
+        imported_class = import_string('drc.backend.django.DjangoDRCStorageBackend')
 
         if settings.CMIS_ENABLED:
-            self.backend = import_instance('drc_cmis.backend.CMISDRCStorageBackend')
+            imported_class = import_string('drc_cmis.backend.CMISDRCStorageBackend')
+
+        self.backend = imported_class()
 
     # Documenten
     def creeer_enkelvoudiginformatieobject(self, gevalideerde_data):

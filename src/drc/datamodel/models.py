@@ -301,3 +301,8 @@ class ObjectInformatieObject(models.Model):
             return self.informatieobject.titel
 
         return '(onbekende titel)'
+
+    @property
+    def url(self):
+        path = reverse('objectinformatieobjecten-detail', kwargs={'version': '1', 'uuid': self.uuid})
+        return f"{settings.HOST_URL}{path}"
