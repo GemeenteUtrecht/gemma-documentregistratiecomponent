@@ -2,6 +2,164 @@
 Wijzigingen
 ===========
 
+1.0.0-rc1 (2019-07-18)
+======================
+
+Release candidate tag
+
+* Bumped to vng-api-common 1.0.0
+* Bumped version numbers to 1.0.0-rc
+* Changed ``dut`` into ``nld`` for correct language identifier in tests
+* Added ``EnkelvoudigInformatieObject.versie`` and
+  ``EnkelvoudigInformatieObject.beginRegitratie`` attributes
+* Fixed attibutes showing as snake_case in API docs instead of camelCase
+
+0.17.0 (2019-07-15)
+===================
+
+More updates towards release candidate
+
+* Updated docs
+* Changed ``taal`` attribute into a 3-char string field instead of an enum
+* Turned all enum values into ``snake_case`` for consistency between APIs
+* Bumped to latest vng-api-common
+
+0.16.0 (2019-07-11)
+===================
+
+Updates towards release candidate
+
+* Use human readable auto-generated document identifications
+* Improved admin usability
+* Improved documentation of ``EnkelvoudigInformatieObject.inhoud`` attribute
+* Build ``develop`` docker images for test environment
+* Documented ``EnkelvoudigInformatieObject.formaat`` - needs to be a MIME-type
+* Improved OAS consistency
+* Added management command to migrate to new domains
+
+Breaking changes
+----------------
+
+* Added pagination to ``EnkelvoudigInformatieObject`` list endpoint
+
+0.15.4 (2019-07-02)
+===================
+
+Added more logging to debug SSL issues
+
+0.15.3 (2019-07-02)
+===================
+
+Bugfixes
+
+* Enabled /api/v1/callbacks webhook endpoint
+* Fixed SSL detection behind reverse proxy, causing ZaakinformatieObject
+  create to fail because of bad resource URLs
+
+0.15.2 (2019-07-02)
+===================
+
+Added a data migration to handle the flattened ZTC urls.
+
+0.15.1 (2019-07-01)
+===================
+
+Fixed bug in docker start script preventing fixtures from being loaded.
+
+0.15.0 (2019-06-28)
+===================
+
+Small feature release
+
+* Added ``EnkelvoudigInformatieObject.locked`` to indicate if an EIO is locked
+  or not. This boolean is consumed by ZRC validation.
+* Adapted tests for explicit OAS 3.x checks so that no OAS 2.x is served
+  anymore
+
+0.14.0 (2019-06-18)
+===================
+
+Second release towards release candidate
+
+* Added support for a minimal plugin system
+* Added versioning of ``EnkelvoudigInformatieObject``:
+    * endpoints support ``versie`` and ``registratieOp`` querystring params
+      (mutually exclusive)
+    * if not provided, the most recent version is returned
+* Update (API schema) translations
+
+Breaking changes
+----------------
+
+* ``EnkelvoudigInformatieObject`` can no longer be deleted if there are still
+  related ``ObjectInformatieObject`` instances.
+* ``ObjectInformatieObject`` can no longer be deleted if the remote, canonical
+  relation still exists. This means that you need to destroy
+  ``ZaakInformatieObject``/``BesluitInformatieObject`` first, which triggers
+  the destruction of ``ObjectInformatieObject`` and then finally you can destroy
+  the ``EnkelvoudigInformatieObject``. Requires ZRC >= 0.17.0 and BRC >= 0.11.3
+
+0.13.2 (2019-06-13)
+===================
+
+Small QoL fixes
+
+* Added audit-trail related tests
+* Added ability to load fixtures during startup
+* Make sendfile backend configurable through envvar
+
+0.13.1 (2019-06-05)
+===================
+
+Forgot to enable view-config view
+
+0.13.0 (2019-06-05)
+===================
+
+First release towards a release candidate
+
+* added ``download`` operation/endpoint to the API spec
+* added authorization to the download of actual binary files
+  (``EnkelvoudigInformatieObject.inhoud``)
+* 🔒 replaced the file storage with private media storage
+* Added locking and unlocking of documents
+* Added unlock-override mechanism for administrators
+* Updated to latest Django 2.2 (LTS)
+
+Breaking changes
+----------------
+
+* ``ObjectInformatieObject`` is no longer the primary relation, it is now
+  created by ZRC/BRC instead of directly by consumers
+* ``ObjectInformatieObject`` no longer contains the relation information
+  specific to the ``objectType``
+* 🐋 Added nginx to the stack to facilitate sendfile download acceleration.
+  Existing deployments directly connecting to uwsgi need to put nginx in front
+* ``EnkelvoudingInformatieObject`` can no longer be updated (``patch``,
+  ``put``) without providing a lock ID, requiring you to lock it *before*
+  updating
+
+0.12.1 (2019-05-22)
+===================
+
+Update API-spec - forgotten after 0.12.0
+
+0.12.0 (2019-05-22)
+===================
+
+Authorizations V2 and audit trail release - breaking changes!
+
+* Authorizations are checked against authorizations component (AC), use the
+  token tool to configure these.
+* Added scopes for actions/resources that were not protected yet
+* Renamed scopes for consistency and brevity, the ``zds.scopes`` prefix is
+  dropped.
+* changed ``invalid-params`` to ``invalidParams`` in validation errors,
+  following KP-API strategy
+* Added audit trails on documents (``informatieobject``)
+* Added unique-representation for resources
+* Bumped dependency versions to latest security releases
+
 0.11.0 (2019-04-18)
 ===================
 

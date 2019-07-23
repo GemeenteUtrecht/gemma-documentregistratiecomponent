@@ -10,11 +10,12 @@ sphinx-rtd-theme
 markdown
 import_class
 
-Django==2.0.13
+Django
 django-axes
 django-choices
 django-cors-middleware
 django-markup==1.3
+django-privates
 
 djangorestframework
 django-extra-fields
@@ -22,10 +23,5 @@ django-filter
 djangorestframework-camel-case
 djangorestframework-filters
 drf-yasg
-#vng-api-common[notifications]==0.38.0
+vng-api-common
 drc-cmis
-
-# data migration - keep it around for a while
-zds-schema==0.22.0
-
--e git+git://github.com/gemeenteutrecht/vng-api-common@utrecht-drc#egg=vng_api_common

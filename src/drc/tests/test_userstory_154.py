@@ -5,34 +5,37 @@ See:
 * https://github.com/VNG-Realisatie/gemma-zaken/issues/154 (us)
 * https://github.com/VNG-Realisatie/gemma-zaken/issues/239 (mapping)
 """
-from unittest.mock import patch
-
-# import factory
 from rest_framework import status
 from rest_framework.test import APITestCase
-from vng_api_common.tests import TypeCheckMixin, get_operation_url
+from vng_api_common.tests import (
+    JWTAuthMixin, TypeCheckMixin, get_operation_url
+)
 
+from drc.api.scopes import SCOPE_DOCUMENTEN_ALLES_LEZEN
 from drc.datamodel.tests.factories import ObjectInformatieObjectFactory
 
-# from django.db.models import signals
+INFORMATIEOBJECTTYPE = 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1'
 
 
+class US154Tests(TypeCheckMixin, JWTAuthMixin, APITestCase):
 
-
-class US154Tests(TypeCheckMixin, APITestCase):
-
-    def setUp(self):
-        super().setUp()
-
-        patcher = patch('drc.sync.signals.sync_create')
-        self.mocked_sync_create = patcher.start()
-        self.addCleanup(patcher.stop)
+    scopes = [SCOPE_DOCUMENTEN_ALLES_LEZEN]
+    informatieobjecttype = INFORMATIEOBJECTTYPE
 
     def test_informatieobjecttype_filter(self):
         zaak_url = 'http://www.example.com/zrc/api/v1/zaken/1'
 
-        ObjectInformatieObjectFactory.create_batch(2, is_zaak=True, object=zaak_url)
-        ObjectInformatieObjectFactory.create(is_zaak=True, object='http://www.example.com/zrc/api/v1/zaken/2')
+        ObjectInformatieObjectFactory.create_batch(
+            2,
+            is_zaak=True,
+            object=zaak_url,
+            informatieobject__latest_version__informatieobjecttype=INFORMATIEOBJECTTYPE
+        )
+        ObjectInformatieObjectFactory.create(
+            is_zaak=True,
+            object='http://www.example.com/zrc/api/v1/zaken/2',
+            informatieobject__latest_version__informatieobjecttype=INFORMATIEOBJECTTYPE
+        )
 
         url = get_operation_url('objectinformatieobject_list')
 

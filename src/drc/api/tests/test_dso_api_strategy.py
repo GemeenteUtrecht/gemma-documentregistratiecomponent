@@ -1,5 +1,7 @@
 from django.test import override_settings
+from django.utils.translation import ugettext as _
 
+import yaml
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from . import views
@@ -8,7 +10,7 @@ from .utils import reverse
 
 class DSOApiStrategyTests(APITestCase):
 
-    def test_api_19_documentation_version(self):
+    def test_api_19_documentation_version_json(self):
         url = reverse('schema-json', kwargs={'format': '.json'})
 
         response = self.client.get(url)
@@ -17,17 +19,23 @@ class DSOApiStrategyTests(APITestCase):
 
         doc = response.json()
 
-        if 'swagger' in doc:
-            self.assertGreaterEqual(doc['swagger'], '2.0')
-        elif 'openapi' in doc:
-            self.assertGreaterEqual(doc['openapi'], '3.0.0')
-        else:
-            self.fail('Unknown documentation version')
+        self.assertGreaterEqual(doc['openapi'], '3.0.0')
+
+    def test_api_19_documentation_version_yaml(self):
+        url = reverse('schema-json', kwargs={'format': '.yaml'})
+
+        response = self.client.get(url)
+
+        self.assertIn('application/yaml', response['Content-Type'])
+
+        doc = yaml.safe_load(response.content)
+
+        self.assertGreaterEqual(doc['openapi'], '3.0.0')
 
     @override_settings(ROOT_URLCONF='drc.api.tests.test_urls')
     def test_api_24_version_header(self):
         response = self.client.get('/test-view')
-        self.assertEqual(response['API-version'], '1.0.0-alpha')
+        self.assertEqual(response['API-version'], '1.0.0-rc1')
 
 
 class DSOApi50Tests(APITestCase):
@@ -64,7 +72,7 @@ class DSOApi50Tests(APITestCase):
                 'title': 'Invalid input.',
                 'status': 400,
                 'detail': '',
-                'invalid-params': [{
+                'invalid_params': [{
                     'name': 'foo',
                     'code': 'validation-error',
                     'reason': 'Invalid data.',
@@ -143,7 +151,7 @@ class DSOApi50Tests(APITestCase):
             views.GoneView,
             {
                 'code': 'gone',
-                'title': 'The resource is gone',
+                'title': _('The resource is gone'),
                 'status': 410,
                 'detail': 'The resource was destroyed',
             }
@@ -154,7 +162,7 @@ class DSOApi50Tests(APITestCase):
             views.PreconditionFailed,
             {
                 'code': 'precondition_failed',
-                'title': 'Precondition failed',
+                'title': _('Precondition failed'),
                 'status': 412,
                 'detail': "Something about CRS",
             }

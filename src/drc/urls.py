@@ -5,6 +5,8 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 from django.views.generic.base import TemplateView
 
+from vng_api_common.views import ViewConfigView
+
 handler500 = 'drc.utils.views.server_error'
 
 urlpatterns = [
@@ -15,6 +17,7 @@ urlpatterns = [
 
     # Simply show the index template.
     path('', TemplateView.as_view(template_name='index.html')),
+    path('view-config/', ViewConfigView.as_view(), name='view-config'),
     path('ref/', include('vng_api_common.urls')),
     path('ref/', include('vng_api_common.notifications.urls')),
 ]
@@ -22,6 +25,7 @@ urlpatterns = [
 # NOTE: The staticfiles_urlpatterns also discovers static files (ie. no need to run collectstatic). Both the static
 # folder and the media folder are only served via Django if DEBUG = True.
 urlpatterns += staticfiles_urlpatterns() + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.PRIVATE_MEDIA_URL, document_root=settings.PRIVATE_MEDIA_ROOT)
 
 if settings.DEBUG and 'debug_toolbar' in settings.INSTALLED_APPS:
     import debug_toolbar

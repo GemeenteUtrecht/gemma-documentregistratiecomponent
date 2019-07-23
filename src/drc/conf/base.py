@@ -4,6 +4,7 @@ import os
 from django.urls import reverse_lazy
 
 from .api import *  # noqa
+from .plugins import PLUGIN_INSTALLED_APPS
 
 SITE_ID = int(os.getenv('SITE_ID', 1))
 
@@ -58,27 +59,30 @@ INSTALLED_APPS = [
     'django_filters',
     'corsheaders',
     'vng_api_common',  # before drf_yasg to override the management command
+    'vng_api_common.authorizations',
+    'vng_api_common.audittrails',
     'vng_api_common.notifications',
     'drf_yasg',
     'rest_framework',
     'rest_framework_filters',
     'django_markup',
     'solo',
+    'privates',
 
     # Project applications.
     'drc.accounts',
     'drc.api',
     'drc.backend',
     'drc.datamodel',
-    'drc.sync',
     'drc.utils',
-]
+] + PLUGIN_INSTALLED_APPS
 
 if CMIS_ENABLED:
     INSTALLED_APPS.append('drc_cmis')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'drc.utils.middleware.LogHeadersMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # 'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -267,6 +271,14 @@ LOGGING = {
             'maxBytes': 1024 * 1024 * 10,  # 10 MB
             'backupCount': 10
         },
+        'requests': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOGGING_DIR, 'requests.log'),
+            'formatter': 'timestamped',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 10
+        }
     },
     'loggers': {
         '': {
@@ -278,6 +290,11 @@ LOGGING = {
             'handlers': ['project'],
             'level': 'INFO',
             'propagate': True,
+        },
+        'drc.utils.middleware': {
+            'handlers': ['requests'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
         'drc_cmis': {
             'handlers': ['cmis'],
@@ -313,6 +330,13 @@ AUTHENTICATION_BACKENDS = [
 SESSION_COOKIE_NAME = 'drc_sessionid'
 
 #
+# Silenced checks
+#
+SILENCED_SYSTEM_CHECKS = [
+    'rest_framework.W001',
+]
+
+#
 # Custom settings
 #
 PROJECT_NAME = 'Documenten'
@@ -324,8 +348,6 @@ SHOW_ALERT = True
 #
 # Library settings
 #
-
-ADMIN_INDEX_SHOW_REMAINING_APPS = True
 
 # Django-axes
 AXES_LOGIN_FAILURE_LIMIT = 30  # Default: 3
@@ -382,11 +404,19 @@ if SENTRY_DSN:
 #
 # SSL or not?
 #
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 IS_HTTPS = os.getenv('IS_HTTPS', '1').lower() in ['true', '1', 'yes']
 
 # settings for sending notifications
 NOTIFICATIONS_KANAAL = 'documenten'
 NOTIFICATIONS_DISABLED = False
+
+# settings for private media files
+PRIVATE_MEDIA_ROOT = os.path.join(BASE_DIR, 'private-media')
+PRIVATE_MEDIA_URL = '/private-media/'
+SENDFILE_BACKEND = 'sendfile.backends.simple'
+SENDFILE_ROOT = PRIVATE_MEDIA_ROOT
+SENDFILE_URL = PRIVATE_MEDIA_URL
 
 # Where to find the enkelvoudiginformatieobject
 ENKELVOUDIGINFORMATIEOBJECT_MODEL = 'datamodel.EnkelvoudigInformatieObject'

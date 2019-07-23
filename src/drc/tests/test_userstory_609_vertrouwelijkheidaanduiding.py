@@ -12,15 +12,22 @@ from django.test import override_settings, tag
 from rest_framework import status
 from rest_framework.test import APITestCase
 from vng_api_common.constants import VertrouwelijkheidsAanduiding
-from vng_api_common.tests import TypeCheckMixin, reverse
+from vng_api_common.tests import JWTAuthMixin, TypeCheckMixin, reverse
 from zds_client.tests.mocks import mock_client
+
+from drc.api.scopes import SCOPE_DOCUMENTEN_AANMAKEN
+
+INFORMATIEOBJECTTYPE = 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1'
 
 
 @override_settings(
     LINK_FETCHER='vng_api_common.mocks.link_fetcher_200',
     ZDS_CLIENT_CLASS='vng_api_common.mocks.MockClient'
 )
-class US609TestCase(TypeCheckMixin, APITestCase):
+class US609TestCase(TypeCheckMixin, JWTAuthMixin, APITestCase):
+
+    scopes = [SCOPE_DOCUMENTEN_AANMAKEN]
+    informatieobjecttype = INFORMATIEOBJECTTYPE
 
     @tag('mock_client')
     def test_vertrouwelijkheidaanduiding_derived(self):
@@ -30,8 +37,8 @@ class US609TestCase(TypeCheckMixin, APITestCase):
         """
         url = reverse('enkelvoudiginformatieobject-list')
         responses = {
-            'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1': {
-                'url': 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1',
+            INFORMATIEOBJECTTYPE: {
+                'url': INFORMATIEOBJECTTYPE,
                 'vertrouwelijkheidaanduiding': VertrouwelijkheidsAanduiding.zaakvertrouwelijk,
             }
         }
@@ -49,7 +56,7 @@ class US609TestCase(TypeCheckMixin, APITestCase):
                 'inhoud': b64encode(b'some file content').decode('utf-8'),
                 'link': 'http://een.link',
                 'beschrijving': 'test_beschrijving',
-                'informatieobjecttype': 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1'
+                'informatieobjecttype': INFORMATIEOBJECTTYPE
             })
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -64,8 +71,8 @@ class US609TestCase(TypeCheckMixin, APITestCase):
         """
         url = reverse('enkelvoudiginformatieobject-list')
         responses = {
-            'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1': {
-                'url': 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1',
+            INFORMATIEOBJECTTYPE: {
+                'url': INFORMATIEOBJECTTYPE,
                 'vertrouwelijkheidaanduiding': VertrouwelijkheidsAanduiding.zaakvertrouwelijk,
             }
         }
@@ -83,7 +90,7 @@ class US609TestCase(TypeCheckMixin, APITestCase):
                 'inhoud': b64encode(b'some file content').decode('utf-8'),
                 'link': 'http://een.link',
                 'beschrijving': 'test_beschrijving',
-                'informatieobjecttype': 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1',
+                'informatieobjecttype': INFORMATIEOBJECTTYPE,
                 'vertrouwelijkheidaanduiding': 'openbaar'
             })
 

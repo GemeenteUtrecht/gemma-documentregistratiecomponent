@@ -1,3 +1,4 @@
+import logging
 import uuid as _uuid
 
 from django.conf import settings
@@ -5,27 +6,29 @@ from django.db import models, transaction
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
+from privates.fields import PrivateMediaFileField
 from vng_api_common.constants import ObjectTypes
 from vng_api_common.descriptors import GegevensGroepType
-from vng_api_common.fields import (
-    LanguageField, RSINField, VertrouwelijkheidsAanduidingField
+from vng_api_common.fields import RSINField, VertrouwelijkheidsAanduidingField
+from vng_api_common.models import APIMixin
+from vng_api_common.utils import (
+    generate_unique_identification, request_object_attribute
 )
 from vng_api_common.validators import alphanumeric_excluding_diacritic
 
-from .constants import (
-    ChecksumAlgoritmes, OndertekeningSoorten, RelatieAarden, Statussen
-)
+from .constants import ChecksumAlgoritmes, OndertekeningSoorten, Statussen
+from .query import InformatieobjectQuerySet, InformatieobjectRelatedQuerySet
 from .validators import validate_status
+
+logger = logging.getLogger(__name__)
 
 
 class InformatieObject(models.Model):
-    uuid = models.UUIDField(
-        unique=True, default=_uuid.uuid4,
-        help_text='Unieke resource identifier (UUID4)'
-    )
     identificatie = models.CharField(
-        max_length=40, validators=[alphanumeric_excluding_diacritic],
-        default=_uuid.uuid4,
+        max_length=40,
+        validators=[alphanumeric_excluding_diacritic],
+        blank=True,
+        default="",
         help_text='Een binnen een gegeven context ondubbelzinnige referentie '
                   'naar het INFORMATIEOBJECT.'
     )
@@ -94,9 +97,9 @@ class InformatieObject(models.Model):
         _("indicatie gebruiksrecht"), blank=True, default=None,
         help_text=_("Indicatie of er beperkingen gelden aangaande het gebruik van "
                     "het informatieobject anders dan raadpleging. Dit veld mag "
-                    "'null' zijn om aan te geven dat de indicatie nog niet bekend is. "
+                    "`null` zijn om aan te geven dat de indicatie nog niet bekend is. "
                     "Als de indicatie gezet is, dan kan je de gebruiksrechten die "
-                    "van toepassing zijn raadplegen via de `Gebruiksrechten` resource.")
+                    "van toepassing zijn raadplegen via de GEBRUIKSRECHTen resource.")
     )
 
     # signing in some sort of way
@@ -114,16 +117,27 @@ class InformatieObject(models.Model):
     )
 
     informatieobjecttype = models.URLField(
-        help_text='URL naar de INFORMATIEOBJECTTYPE in het ZTC.'
+        help_text=_('URL-referentie naar het INFORMATIEOBJECTTYPE (in de '
+                    'Catalogi API).')
     )
+
+    objects = InformatieobjectQuerySet.as_manager()
+
+    IDENTIFICATIE_PREFIX = "DOCUMENT"
 
     class Meta:
         verbose_name = 'informatieobject'
         verbose_name_plural = 'informatieobject'
+        unique_together = ('bronorganisatie', 'identificatie')
         abstract = True
 
     def __str__(self) -> str:
         return str(self.identificatie)
+
+    def save(self, *args, **kwargs):
+        if not self.identificatie:
+            self.identificatie = generate_unique_identification(self, "creatiedatum")
+        super().save(*args, **kwargs)
 
     def clean(self):
         super().clean()
@@ -134,17 +148,61 @@ class InformatieObject(models.Model):
         'datum': ondertekening_datum,
     })
 
+    def unique_representation(self):
+        return f"{self.bronorganisatie} - {self.identificatie}"
 
-class EnkelvoudigInformatieObject(InformatieObject):
-    # TODO: validate mime types
+
+class EnkelvoudigInformatieObjectCanonical(models.Model):
+    """
+    Indicates the identity of a document
+    """
+    lock = models.CharField(
+        default='', blank=True, max_length=100,
+        help_text=_('Hash string, which represents id of the lock')
+    )
+
+    def __str__(self):
+        return str(self.latest_version)
+
+    @property
+    def latest_version(self):
+        versies = self.enkelvoudiginformatieobject_set.order_by('-versie')
+        return versies.first()
+
+
+class EnkelvoudigInformatieObject(APIMixin, InformatieObject):
+    """
+    Stores the content of a specific version of an
+    EnkelvoudigInformatieObjectCanonical
+
+    The model is split into two parts to support versioning, now a single
+    `EnkelvoudigInformatieObjectCanonical` can exist with multiple different
+    `EnkelvoudigInformatieObject`s, which can be retrieved by filtering
+    """
+    canonical = models.ForeignKey(
+        EnkelvoudigInformatieObjectCanonical,
+        on_delete=models.CASCADE,
+    )
+    uuid = models.UUIDField(
+        default=_uuid.uuid4,
+        help_text='Unieke resource identifier (UUID4)'
+    )
+
+    # NOTE: Don't validate but rely on externally maintened list of Media Types
+    # and that consumers know what they're doing. This prevents updating the
+    # API specification on every Media Type that is added.
     formaat = models.CharField(
         max_length=255, blank=True,
-        help_text='De code voor de wijze waarop de inhoud van het ENKELVOUDIG '
-                  'INFORMATIEOBJECT is vastgelegd in een computerbestand.'
+        help_text='Het "Media Type" (voorheen "MIME type") voor de wijze waarop'
+                  'de inhoud van het INFORMATIEOBJECT is vastgelegd in een '
+                  'computerbestand. Voorbeeld: `application/msword`. Zie: '
+                  'https://www.iana.org/assignments/media-types/media-types.xhtml'
     )
-    taal = LanguageField(
-        help_text='Een taal van de intellectuele inhoud van het ENKELVOUDIG '
-                  'INFORMATIEOBJECT. De waardes komen uit ISO 639-2/B'
+    taal = models.CharField(
+        max_length=3,
+        help_text='Een ISO 639-2/B taalcode waarin de inhoud van het '
+                  'INFORMATIEOBJECT is vastgelegd. Voorbeeld: `nld`. Zie: '
+                  'https://www.iso.org/standard/4767.html'
     )
 
     bestandsnaam = models.CharField(
@@ -152,7 +210,8 @@ class EnkelvoudigInformatieObject(InformatieObject):
         help_text=_("De naam van het fysieke bestand waarin de inhoud van het "
                     "informatieobject is vastgelegd, inclusief extensie.")
     )
-    inhoud = models.FileField(upload_to='uploads/%Y/%m/')
+    inhoud = PrivateMediaFileField(upload_to='uploads/%Y/%m/', )
+    # inhoud = models.FileField(upload_to='uploads/%Y/%m/')
     link = models.URLField(
         max_length=200, blank=True,
         help_text='De URL waarmee de inhoud van het INFORMATIEOBJECT op te '
@@ -180,11 +239,25 @@ class EnkelvoudigInformatieObject(InformatieObject):
         'datum': integriteit_datum,
     })
 
+    versie = models.PositiveIntegerField(
+        default=1,
+        help_text=_('Het (automatische) versienummer van het INFORMATIEOBJECT. Deze begint bij 1 als het '
+                    'INFORMATIEOBJECT aangemaakt wordt.')
+    )
+    begin_registratie = models.DateTimeField(
+        auto_now=True,
+        help_text=_('Een datumtijd in ISO8601 formaat waarop deze versie van het INFORMATIEOBJECT is aangemaakt of '
+                    'gewijzigd.')
+    )
     @property
     def bestandsomvang(self):
         if self.inhoud:
             return self.inhoud.size
         return None
+
+    class Meta:
+        unique_together = ('uuid', 'versie')
+
 
     @property
     def url(self):
@@ -197,7 +270,10 @@ class Gebruiksrechten(models.Model):
         unique=True, default=_uuid.uuid4,
         help_text="Unieke resource identifier (UUID4)"
     )
-    informatieobject = models.ForeignKey('EnkelvoudigInformatieObject', on_delete=models.CASCADE)
+    informatieobject = models.ForeignKey(
+        'EnkelvoudigInformatieObjectCanonical', on_delete=models.CASCADE,
+        help_text='URL-referentie naar het INFORMATIEOBJECT.'
+    )
     omschrijving_voorwaarden = models.TextField(
         _("omschrijving voorwaarden"),
         help_text=_("Omschrijving van de van toepassing zijnde voorwaarden aan "
@@ -213,32 +289,40 @@ class Gebruiksrechten(models.Model):
         help_text=_("Einddatum van de periode waarin de gebruiksrechtvoorwaarden van toepassing zijn.")
     )
 
+    objects = InformatieobjectRelatedQuerySet.as_manager()
+
     class Meta:
         verbose_name = _("gebruiksrecht informatieobject")
         verbose_name_plural = _("gebruiksrechten informatieobject")
 
     def __str__(self):
-        return str(self.informatieobject)
+        return str(self.informatieobject.latest_version)
 
     @transaction.atomic
     def save(self, *args, **kwargs):
+        informatieobject_versie = self.informatieobject.latest_version
         # ensure the indication is set properly on the IO
-        if not self.informatieobject.indicatie_gebruiksrecht:
-            self.informatieobject.indicatie_gebruiksrecht = True
-            self.informatieobject.save()
+        if not informatieobject_versie.indicatie_gebruiksrecht:
+            informatieobject_versie.indicatie_gebruiksrecht = True
+            informatieobject_versie.save()
         super().save(*args, **kwargs)
 
     @transaction.atomic
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
-
-        other_gebruiksrechten = self.informatieobject.gebruiksrechten_set.exclude(pk=self.pk)
+        informatieobject = self.informatieobject
+        other_gebruiksrechten = informatieobject.gebruiksrechten_set.exclude(pk=self.pk)
         if not other_gebruiksrechten.exists():
-            self.informatieobject.indicatie_gebruiksrecht = None
-            self.informatieobject.save()
+            informatieobject_versie = self.informatieobject.latest_version
+            informatieobject_versie.indicatie_gebruiksrecht = None
+            informatieobject_versie.save()
+
+    def unique_representation(self):
+        informatieobject = self.informatieobject.latest_version
+        return f"({informatieobject.unique_representation()}) - {self.omschrijving_voorwaarden}"
 
 
-class ObjectInformatieObject(models.Model):
+class ObjectInformatieObject(APIMixin, models.Model):
     """
     Modelleer een INFORMATIEOBJECT horend bij een OBJECT.
 
@@ -250,57 +334,41 @@ class ObjectInformatieObject(models.Model):
         help_text="Unieke resource identifier (UUID4)"
     )
     informatieobject = models.ForeignKey(
-        'EnkelvoudigInformatieObject', on_delete=models.CASCADE
+        'EnkelvoudigInformatieObjectCanonical', on_delete=models.CASCADE,
+        help_text='URL-referentie naar het INFORMATIEOBJECT.'
     )
-    object = models.URLField(help_text="URL naar het gerelateerde OBJECT.")
+    object = models.URLField(
+        help_text="URL-referentie naar het gerelateerde OBJECT (in deze of een "
+                  "andere API).")
     object_type = models.CharField(
-        "objecttype", max_length=100,
-        choices=ObjectTypes.choices
-    )
-    aard_relatie = models.CharField(
-        "aard relatie", max_length=20,
-        choices=RelatieAarden.choices
+        "objecttype", max_length=100, choices=ObjectTypes.choices,
+        help_text="Het type van het gerelateerde OBJECT."
     )
 
-    # relatiegegevens
-    titel = models.CharField(
-        "titel", max_length=200, blank=True,
-        help_text="De naam waaronder het INFORMATIEOBJECT binnen het OBJECT bekend is."
-    )
-    beschrijving = models.TextField(
-        "beschrijving", blank=True,
-        help_text="Een op het object gerichte beschrijving van de inhoud van"
-                  "het INFORMATIEOBJECT."
-    )
-    registratiedatum = models.DateTimeField(
-        "registratiedatum", auto_now_add=True,
-        help_text="De datum waarop de behandelende organisatie het "
-                  "INFORMATIEOBJECT heeft geregistreerd bij het OBJECT. "
-                  "Geldige waardes zijn datumtijden gelegen op of voor de "
-                  "huidige datum en tijd."
-    )
+    objects = InformatieobjectRelatedQuerySet.as_manager()
 
     class Meta:
-        verbose_name = 'Zaakinformatieobject'
-        verbose_name_plural = 'Zaakinformatieobjecten'
+        verbose_name = 'Oobject-informatieobject'
+        verbose_name_plural = 'object-informatieobjecten'
         unique_together = ('informatieobject', 'object')
 
     def __str__(self):
         return self.get_title()
 
-    def save(self, *args, **kwargs):
-        # override to set aard_relatie
-        self.aard_relatie = RelatieAarden.from_object_type(self.object_type)
-        super().save(*args, **kwargs)
-
     def get_title(self) -> str:
-        if self.titel:
+        if hasattr(self, 'titel'):
             return self.titel
 
         if self.informatieobject_id:
-            return self.informatieobject.titel
+            return self.informatieobject.latest_version.titel
 
         return '(onbekende titel)'
+
+    def unique_representation(self):
+        if not hasattr(self, '_unique_representation'):
+            io_id = request_object_attribute(self.object, 'identificatie', self.object_type)
+            self._unique_representation = f"({self.informatieobject.latest_version.unique_representation()}) - {io_id}"
+        return self._unique_representation
 
     @property
     def url(self):
