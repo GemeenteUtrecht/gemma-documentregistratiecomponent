@@ -108,6 +108,12 @@ class NotificationMixin(metaclass=NotificationMixinBase):
         else:
             # lookup the main object from the URL
             main_object_url = self.get_notification_main_object_url(data, kanaal)
+
+            # TODO: Temp demo fix
+            # Got object expected string.
+            if not isinstance(main_object_url, str):
+                main_object_url = main_object_url.url
+
             main_object_path = urlparse(main_object_url).path
             main_object = get_resource_for_path(main_object_path)
 
