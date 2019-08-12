@@ -418,6 +418,9 @@ SENDFILE_BACKEND = 'sendfile.backends.simple'
 SENDFILE_ROOT = PRIVATE_MEDIA_ROOT
 SENDFILE_URL = PRIVATE_MEDIA_URL
 
+# settings for uploading large files
+MIN_UPLOAD_SIZE = int(os.getenv('MIN_UPLOAD_SIZE', 4 * 2**30))
+
 # Where to find the enkelvoudiginformatieobject
 ENKELVOUDIGINFORMATIEOBJECT_MODEL = 'datamodel.EnkelvoudigInformatieObject'
 ABSTRACT_BASE_CLASS = 'drc.backend.abstract.BaseDRCStorageBackend'

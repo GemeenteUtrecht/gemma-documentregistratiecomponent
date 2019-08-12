@@ -25,3 +25,6 @@ djangorestframework-filters
 drf-yasg
 vng-api-common
 drc-cmis
+
+# Not installed with vng-api-common
+djangorestframework-gis

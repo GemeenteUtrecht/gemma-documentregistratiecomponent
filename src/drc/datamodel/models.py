@@ -249,15 +249,18 @@ class EnkelvoudigInformatieObject(APIMixin, InformatieObject):
         help_text=_('Een datumtijd in ISO8601 formaat waarop deze versie van het INFORMATIEOBJECT is aangemaakt of '
                     'gewijzigd.')
     )
-    @property
-    def bestandsomvang(self):
-        if self.inhoud:
-            return self.inhoud.size
-        return None
 
     class Meta:
         unique_together = ('uuid', 'versie')
 
+    @property
+    def bestandsomvang(self):
+        if self.inhoud:
+            try:
+                return self.inhoud.size
+            except FileNotFoundError:
+                return None
+        return None
 
     @property
     def url(self):

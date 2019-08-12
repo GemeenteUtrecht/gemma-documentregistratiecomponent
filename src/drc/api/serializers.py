@@ -1,22 +1,22 @@
 """
 Serializers of the Document Registratie Component REST API
 """
-from django.utils.encoding import force_text
 import uuid
 
 from django.conf import settings
 from django.db import transaction
+from django.utils.encoding import force_text
 from django.utils.http import urlencode
 from django.utils.module_loading import import_string
 from django.utils.translation import ugettext_lazy as _
 
 from drf_extra_fields.fields import Base64FileField
+from humanize import naturalsize
 from privates.storages import PrivateMediaFileSystemStorage
 from rest_framework import serializers
-from vng_api_common.constants import ObjectTypes, VertrouwelijkheidsAanduiding
-from vng_api_common.fields import LANGUAGE_CHOICES
 from rest_framework.reverse import reverse
 from vng_api_common.constants import ObjectTypes, VertrouwelijkheidsAanduiding
+from vng_api_common.fields import LANGUAGE_CHOICES
 from vng_api_common.models import APICredential
 from vng_api_common.serializers import (
     GegevensGroepSerializer, add_choice_values_help_text
@@ -26,15 +26,12 @@ from vng_api_common.validators import IsImmutableValidator, URLValidator
 
 from drc.backend import drc_storage_adapter
 from drc.datamodel.constants import (
-    ChecksumAlgoritmes, OndertekeningSoorten, RelatieAarden, Statussen
-from drc.datamodel.constants import (
     ChecksumAlgoritmes, OndertekeningSoorten, Statussen
 )
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, EnkelvoudigInformatieObjectCanonical,
     Gebruiksrechten, ObjectInformatieObject
 )
-from drc.datamodel.models import Gebruiksrechten
 
 from .auth import get_zrc_auth, get_ztc_auth
 from .validators import (
@@ -61,10 +58,6 @@ class AnyBase64File(Base64FileField):
     def to_representation(self, file):
         is_private_storage = isinstance(file.storage, PrivateMediaFileSystemStorage)
 
-class IntegriteitSerializer(serializers.Serializer):
-    algoritme = serializers.ChoiceField(choices=ChecksumAlgoritmes.choices, help_text=_("Aanduiding van algoritme, gebruikt om de checksum te maken."))
-    waarde = serializers.CharField(min_length=1, max_length=128, help_text=_("De waarde van de checksum."))
-    datum = serializers.DateField(help_text=_("Datum waarop de checksum is gemaakt."))
         if not is_private_storage or self.represent_in_base64:
             return super().to_representation(file)
 
@@ -93,72 +86,31 @@ class IntegriteitSerializer(serializers.Serializer):
         return f'{url}?{query_string}'
 
 
-class IntegriteitSerializer(GegevensGroepSerializer):
-    class Meta:
-        model = EnkelvoudigInformatieObject
-        gegevensgroep = 'integriteit'
+class IntegriteitSerializer(serializers.Serializer):
+    algoritme = serializers.ChoiceField(choices=ChecksumAlgoritmes.choices, help_text=_("Aanduiding van algoritme, gebruikt om de checksum te maken."))
+    waarde = serializers.CharField(min_length=1, max_length=128, help_text=_("De waarde van de checksum."))
+    datum = serializers.DateField(help_text=_("Datum waarop de checksum is gemaakt."))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-class OndertekeningSerializer(serializers.Serializer):
-    soort = serializers.ChoiceField(choices=OndertekeningSoorten.choices, help_text=_("Aanduiding van de wijze van ondertekening van het INFORMATIEOBJECT"))
-    datum = serializers.DateField(help_text=_("De datum waarop de ondertekening van het INFORMATIEOBJECT heeft plaatsgevonden."))
         value_display_mapping = add_choice_values_help_text(ChecksumAlgoritmes)
         self.fields['algoritme'].help_text += f"\n\n{value_display_mapping}"
 
 
-class OndertekeningSerializer(GegevensGroepSerializer):
-    class Meta:
-        model = EnkelvoudigInformatieObject
-        gegevensgroep = 'ondertekening'
+class OndertekeningSerializer(serializers.Serializer):
+    soort = serializers.ChoiceField(choices=OndertekeningSoorten.choices, help_text=_("Aanduiding van de wijze van ondertekening van het INFORMATIEOBJECT"))
+    datum = serializers.DateField(help_text=_("De datum waarop de ondertekening van het INFORMATIEOBJECT heeft plaatsgevonden."))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        value_display_mapping = add_choice_values_help_text(OndertekeningSoorten)
+        self.fields['soort'].help_text += f"\n\n{value_display_mapping}"
+
 
 class BaseEnkelvoudigInformatieObjectSerializer(serializers.Serializer):
     identificatie = serializers.CharField(
         required=False, max_length=40, allow_blank=True, allow_null=True,
         help_text='Een binnen een gegeven context ondubbelzinnige referentie naar het INFORMATIEOBJECT.'
-        value_display_mapping = add_choice_values_help_text(OndertekeningSoorten)
-        self.fields['soort'].help_text += f"\n\n{value_display_mapping}"
-
-
-class EnkelvoudigInformatieObjectHyperlinkedRelatedField(serializers.HyperlinkedRelatedField):
-    """
-    Custom field to construct the url for models that have a ForeignKey to
-    `EnkelvoudigInformatieObject`
-
-    Needed because the canonical `EnkelvoudigInformatieObjectCanonical` no longer stores
-    the uuid, but the `EnkelvoudigInformatieObject`s related to it do
-    store the uuid
-    """
-
-    def get_url(self, obj, view_name, request, format):
-        obj_latest_version = obj.latest_version
-        return super().get_url(obj_latest_version, view_name, request, format)
-
-    def get_object(self, view_name, view_args, view_kwargs):
-        lookup_value = view_kwargs[self.lookup_url_kwarg]
-        lookup_kwargs = {self.lookup_field: lookup_value}
-        try:
-            return self.get_queryset().filter(**lookup_kwargs).order_by('-versie').first().canonical
-        except (TypeError, AttributeError):
-            self.fail('does_not_exist')
-
-
-class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
-    """
-    Serializer for the EnkelvoudigInformatieObject model
-    """
-    url = serializers.HyperlinkedIdentityField(
-        view_name='enkelvoudiginformatieobject-detail',
-        lookup_field='uuid'
-    )
-    inhoud = AnyBase64File(view_name='enkelvoudiginformatieobject-download')
-    bestandsomvang = serializers.IntegerField(
-        source='inhoud.size', read_only=True, min_value=0,
-        help_text=_("Aantal bytes dat de inhoud van INFORMATIEOBJECT in beslag neemt.")
     )
     bronorganisatie = serializers.CharField(
         max_length=9, allow_blank=True, allow_null=True,
@@ -182,6 +134,7 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
     )
     status = serializers.ChoiceField(
         choices=Statussen.choices, required=False, allow_blank=True, allow_null=True,
+        validators=[StatusValidator()],
         help_text=_("Aanduiding van de stand van zaken van een INFORMATIEOBJECT. De waarden 'in bewerking'"
                     " en 'ter vaststelling' komen niet voor als het attribuut ontvangstdatum van een waarde"
                     " is voorzien. Wijziging van de Status in 'gearchiveerd' impliceert dat het"
@@ -252,50 +205,6 @@ class EnkelvoudigInformatieObjectSerializer(serializers.HyperlinkedModelSerializ
         )
     )
 
-    class Meta:
-        model = EnkelvoudigInformatieObject
-        fields = (
-            'url',
-            'identificatie',
-            'bronorganisatie',
-            'creatiedatum',
-            'titel',
-            'vertrouwelijkheidaanduiding',
-            'auteur',
-            'status',
-            'formaat',
-            'taal',
-            'versie',
-            'begin_registratie',
-            'bestandsnaam',
-            'inhoud',
-            'bestandsomvang',
-            'link',
-            'beschrijving',
-            'ontvangstdatum',
-            'verzenddatum',
-            'indicatie_gebruiksrecht',
-            'ondertekening',
-            'integriteit',
-            'informatieobjecttype',  # van-relatie,
-            'locked',
-        )
-        extra_kwargs = {
-            'informatieobjecttype': {
-                'validators': [URLValidator(get_auth=get_ztc_auth)],
-            },
-            'taal': {
-                'min_length': 3,
-            },
-        }
-        read_only_fields = [
-            'versie',
-            'begin_registratie',
-        ]
-        validators = [StatusValidator()]
-
-class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSerializer):
-    inhoud = AnyBase64File()
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -317,7 +226,6 @@ class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSeria
             self._informatieobjecttype = client.request(informatieobjecttype_url, 'informatieobjecttype')
         return self._informatieobjecttype
 
-    def create(self):
     def validate_indicatie_gebruiksrecht(self, indicatie):
         if self.instance and not indicatie and self.instance.canonical.gebruiksrechten_set.exists():
             raise serializers.ValidationError(
@@ -334,44 +242,35 @@ class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSeria
             )
         return indicatie
 
-    @transaction.atomic
-    def create(self, validated_data):
+
+class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSerializer):
+    inhoud = AnyBase64File(
+        view_name='enkelvoudiginformatieobject-download',
+        help_text=_(f"Minimal accepted size of uploaded file = {settings.MIN_UPLOAD_SIZE} bytes "
+                    f"(or {naturalsize(settings.MIN_UPLOAD_SIZE, binary=True)})")
+    )
+
+    def create(self):
         """
         Handle the create calls.
         """
         return drc_storage_adapter.creeer_enkelvoudiginformatieobject(self.validated_data.copy())
 
     def update(self, identificatie):
-        canonical = EnkelvoudigInformatieObjectCanonical.objects.create()
-        validated_data['canonical'] = canonical
-
-        eio = super().create(validated_data)
-        eio.integriteit = integriteit
-        eio.ondertekening = ondertekening
-        eio.save()
-        return eio
-
-    def update(self, instance, validated_data):
         """
         Handle the update calls.
-        Instead of updating an existing EnkelvoudigInformatieObject,
-        create a new EnkelvoudigInformatieObject with the same
-        EnkelvoudigInformatieObjectCanonical
         """
         return drc_storage_adapter.update_enkenvoudiginformatieobject(identificatie, self.validated_data.copy())
-        instance.integriteit = validated_data.pop('integriteit', None)
-        instance.ondertekening = validated_data.pop('ondertekening', None)
 
-        validated_data_field_names = validated_data.keys()
-        for field in instance._meta.get_fields():
-            if field.name not in validated_data_field_names:
-                validated_data[field.name] = getattr(instance, field.name)
 
 class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSerializer):
     # Add extra fields that are used in the return
     url = serializers.URLField(max_length=200, allow_blank=True, allow_null=True)
     inhoud = serializers.URLField(max_length=200, allow_blank=True, allow_null=True)
-    bestandsomvang = serializers.IntegerField(min_value=0)
+    bestandsomvang = serializers.IntegerField(
+        read_only=True, min_value=0,
+        help_text=_("Aantal bytes dat de inhoud van INFORMATIEOBJECT in beslag neemt.")
+    )
 
     def create(self):
         raise NotImplementedError('This should not be used')
@@ -379,23 +278,11 @@ class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObj
     def update(self, identificatie):
         raise NotImplementedError('This should not be used')
 
-
-class ObjectInformatieObjectSerializer(serializers.Serializer):
-    url = serializers.URLField(allow_blank=True, allow_null=True, required=False)
-    informatieobject = serializers.URLField(allow_blank=True, allow_null=True, validators=[IsImmutableValidator()])
-    object = serializers.URLField(
-        max_length=200, allow_blank=True, allow_null=True,
-        validators=[URLValidator(get_auth=get_zrc_auth, headers={'Accept-Crs': 'EPSG:4326'}), IsImmutableValidator()],
-        help_text="URL naar het gerelateerde OBJECT."
-        validated_data['pk'] = None
-        validated_data['versie'] += 1
-
-        # Remove the lock from the data from which a new
-        # EnkelvoudigInformatieObject will be created, because lock is not a
-        # part of that model
-        validated_data.pop('lock')
-
-        return super().create(validated_data)
+    class Meta:
+        read_only_fields = [
+            'versie',
+            'begin_registratie',
+        ]
 
 
 class EnkelvoudigInformatieObjectWithLockSerializer(EnkelvoudigInformatieObjectSerializer):
@@ -408,10 +295,6 @@ class EnkelvoudigInformatieObjectWithLockSerializer(EnkelvoudigInformatieObjectS
         help_text=_("Lock must be provided during updating the document (PATCH, PUT), "
                     "not while creating it"),
     )
-
-    class Meta(EnkelvoudigInformatieObjectSerializer.Meta):
-        # Use the same fields as the parent class and add the lock to it
-        fields = EnkelvoudigInformatieObjectSerializer.Meta.fields + ('lock',)
 
     def validate(self, attrs):
         valid_attrs = super().validate(attrs)
@@ -505,38 +388,17 @@ class UnlockEnkelvoudigInformatieObjectSerializer(serializers.ModelSerializer):
         return self.instance
 
 
-class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
-    informatieobject = EnkelvoudigInformatieObjectHyperlinkedRelatedField(
-        view_name='enkelvoudiginformatieobject-detail',
-        lookup_field='uuid',
-        queryset=EnkelvoudigInformatieObject.objects,
-        help_text=get_help_text('datamodel.ObjectInformatieObject', 'informatieobject'),
+class ObjectInformatieObjectSerializer(serializers.Serializer):
+    url = serializers.URLField(allow_blank=True, allow_null=True, required=False)
+    informatieobject = serializers.URLField(allow_blank=True, allow_null=True, validators=[IsImmutableValidator()], help_text=get_help_text('datamodel.ObjectInformatieObject', 'informatieobject'),)
+    object = serializers.URLField(
+        max_length=200, allow_blank=True, allow_null=True,
+        validators=[URLValidator(get_auth=get_zrc_auth, headers={'Accept-Crs': 'EPSG:4326'}), IsImmutableValidator()],
+        help_text="URL naar het gerelateerde OBJECT."
     )
-    object_type = serializers.ChoiceField(allow_blank=True, allow_null=True, choices=ObjectTypes.choices, validators=[IsImmutableValidator()])
-    aard_relatie = serializers.ChoiceField(
-        read_only=True, choices=[(force_text(value), key) for key, value in RelatieAarden.choices]
-    )
-    titel = serializers.CharField(
-        max_length=200, allow_blank=True, allow_null=True, required=False,
-        help_text='De naam waaronder het INFORMATIEOBJECT binnen het OBJECT bekend is.'
-    )
-    beschrijving = serializers.CharField(required=False, allow_blank=True)
-    registratiedatum = serializers.DateTimeField(
-        read_only=True, allow_null=True,
-        help_text=_('De datum waarop de behandelende organisatie het INFORMATIEOBJECT heeft geregistreerd'
-                    ' bij het OBJECT. Geldige waardes zijn datumtijden gelegen op of voor de huidige datum en tijd.')
-    )
+    object_type = serializers.ChoiceField(allow_blank=True, allow_null=True, choices=ObjectTypes.choices, validators=[IsImmutableValidator()], help_text="Het type van het gerelateerde OBJECT.\n\nUitleg bij mogelijke waarden:")
 
-    # TODO: valideer dat ObjectInformatieObject.informatieobjecttype hoort
-    # TODO: bij zaak.zaaktype
     class Meta:
-        model = ObjectInformatieObject
-        fields = (
-            'url',
-            'informatieobject',
-            'object',
-            'object_type',
-        )
         extra_kwargs = {
             'url': {
                 'lookup_field': 'uuid',
@@ -565,27 +427,6 @@ class ObjectInformatieObjectSerializer(serializers.HyperlinkedModelSerializer):
         if not hasattr(self, 'initial_data'):
             return
 
-        if isinstance(self.initial_data, list):
-            for initial_data in self.initial_data:
-                self.check_data(initial_data)
-        else:
-            self.check_data(self.initial_data)
-
-    def check_data(self, initial_data):
-        object_type = initial_data.get('object_type')
-
-        if object_type == ObjectTypes.besluit:
-            del self.fields['titel']
-            del self.fields['beschrijving']
-            del self.fields['registratiedatum']
-class GebruiksrechtenSerializer(serializers.HyperlinkedModelSerializer):
-    informatieobject = EnkelvoudigInformatieObjectHyperlinkedRelatedField(
-        view_name='enkelvoudiginformatieobject-detail',
-        lookup_field='uuid',
-        queryset=EnkelvoudigInformatieObject.objects,
-        help_text=get_help_text('datamodel.Gebruiksrechten', 'informatieobject'),
-    )
-
     def create(self):
         """
         Handle backend calls.
@@ -600,6 +441,13 @@ class GebruiksrechtenSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class GebruiksrechtenSerializer(serializers.HyperlinkedModelSerializer):
+    # informatieobject = EnkelvoudigInformatieObjectHyperlinkedRelatedField(
+    #     view_name='enkelvoudiginformatieobject-detail',
+    #     lookup_field='uuid',
+    #     queryset=EnkelvoudigInformatieObject.objects,
+    #     help_text=get_help_text('datamodel.Gebruiksrechten', 'informatieobject'),
+    # )
+
     class Meta:
         model = Gebruiksrechten
         fields = (

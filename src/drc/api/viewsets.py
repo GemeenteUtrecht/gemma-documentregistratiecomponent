@@ -1,10 +1,5 @@
 import logging
 
-from rest_framework import status, viewsets
-from rest_framework.response import Response
-from rest_framework.settings import api_settings
-from vng_api_common.notifications.viewsets import NotificationViewSetMixin
-from vng_api_common.permissions import ActionScopesRequired
 from django.db import transaction
 from django.http.response import Http404
 from django.shortcuts import get_list_or_404, get_object_or_404
@@ -36,7 +31,6 @@ from drc.datamodel.models import (
     EnkelvoudigInformatieObject, EnkelvoudigInformatieObjectCanonical,
     Gebruiksrechten, ObjectInformatieObject
 )
-from drc.sync.signals import oio_change
 
 from .audits import AUDIT_DRC
 from .data_filtering import ListFilterByAuthorizationsMixin
@@ -47,7 +41,6 @@ from .filters import (
 )
 from .kanalen import KANAAL_DOCUMENTEN
 from .notifications import NotificationMixin
-from .scopes import SCOPE_DOCUMENTEN_ALLES_VERWIJDEREN
 from .permissions import (
     InformationObjectAuthScopesRequired,
     InformationObjectRelatedAuthScopesRequired
@@ -58,18 +51,17 @@ from .scopes import (
     SCOPE_DOCUMENTEN_GEFORCEERD_UNLOCK, SCOPE_DOCUMENTEN_LOCK
 )
 from .serializers import (
-    EnkelvoudigInformatieObjectSerializer, GebruiksrechtenSerializer,
-    ObjectInformatieObjectSerializer,
-    RetrieveEnkelvoudigInformatieObjectSerializer
     EnkelvoudigInformatieObjectSerializer,
     EnkelvoudigInformatieObjectWithLockSerializer, GebruiksrechtenSerializer,
     LockEnkelvoudigInformatieObjectSerializer,
     ObjectInformatieObjectSerializer,
+    RetrieveEnkelvoudigInformatieObjectSerializer,
     UnlockEnkelvoudigInformatieObjectSerializer
 )
 from .validators import RemoteRelationValidator
 
 logger = logging.getLogger(__name__)
+
 # Openapi query parameters for version querying
 VERSIE_QUERY_PARAM = openapi.Parameter(
     'versie',
@@ -125,12 +117,11 @@ class SerializerClassMixin:
         }
 
 
-class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, viewsets.ViewSet):
-
-class EnkelvoudigInformatieObjectViewSet(NotificationViewSetMixin,
-                                         ListFilterByAuthorizationsMixin,
+class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
+                                         NotificationMixin,
+                                        #  ListFilterByAuthorizationsMixin, TODO: Find a fix for this mixin
                                          AuditTrailViewsetMixin,
-                                         viewsets.ModelViewSet):
+                                         viewsets.ViewSet):
     """
     Opvragen en bewerken van (ENKELVOUDIG) INFORMATIEOBJECTen (documenten).
 
@@ -213,12 +204,9 @@ class EnkelvoudigInformatieObjectViewSet(NotificationViewSetMixin,
     ontgrendeld wordt.
     """
     serializer_class = EnkelvoudigInformatieObjectSerializer
-    filterset_class = EnkelvoudigInformatieObjectFilter
-    queryset = EnkelvoudigInformatieObject.objects.order_by('canonical', '-versie').distinct('canonical')
+    filterset_class = EnkelvoudigInformatieObjectListFilter
     lookup_field = 'uuid'
     lookup_url_kwarg = 'uuid'
-    permission_classes = (ActionScopesRequired, )
-    pagination_class = PageNumberPagination
     permission_classes = (InformationObjectAuthScopesRequired, )
     required_scopes = {
         'list': SCOPE_DOCUMENTEN_ALLES_LEZEN,
@@ -234,24 +222,34 @@ class EnkelvoudigInformatieObjectViewSet(NotificationViewSetMixin,
     notifications_kanaal = KANAAL_DOCUMENTEN
     notifications_resource = 'enkelvoudiginformatieobject'
     notifications_model = EnkelvoudigInformatieObject
+
+    pagination_class = PageNumberPagination
     audit = AUDIT_DRC
+
+    # @transaction.atomic
+    # def perform_destroy(self, instance):
+    #     if instance.canonical.objectinformatieobject_set.exists():
+    #         raise serializers.ValidationError({
+    #             api_settings.NON_FIELD_ERRORS_KEY: _(
+    #                 "All relations to the document must be destroyed before destroying the document"
+    #             )},
+    #             code="pending-relations"
+    #         )
+
+    #     documents_data = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(filters=filters.form.cleaned_data)
+    #     serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=documents_data, many=True)
+    #     return Response(serializer.data)
 
     def list(self, request, version=None):
         filters = self.filterset_class(data=self.request.GET)
         if not filters.is_valid():
             return Response(filters.errors, status=400)
-    @transaction.atomic
-    def perform_destroy(self, instance):
-        if instance.canonical.objectinformatieobject_set.exists():
-            raise serializers.ValidationError({
-                api_settings.NON_FIELD_ERRORS_KEY: _(
-                    "All relations to the document must be destroyed before destroying the document"
-                )},
-                code="pending-relations"
-            )
 
         documents_data = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(filters=filters.form.cleaned_data)
+
+        documents_data
         serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=documents_data, many=True)
+        # TODO: Build in pagination......
         return Response(serializer.data)
 
     def get_object(self, **kwargs):
@@ -309,8 +307,6 @@ class EnkelvoudigInformatieObjectViewSet(NotificationViewSetMixin,
 
 
 class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, viewsets.ViewSet):
-        super().perform_destroy(instance.canonical)
-
     @property
     def filterset_class(self):
         """
@@ -439,10 +435,10 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
                                     AuditTrailCreateMixin,
                                     AuditTrailDestroyMixin,
                                     CheckQueryParamsMixin,
-                                    ListFilterByAuthorizationsMixin,
+                                    # ListFilterByAuthorizationsMixin,  TODO: Find a fix for this mixin
                                     mixins.CreateModelMixin,
                                     mixins.DestroyModelMixin,
-                                    viewsets.ReadOnlyModelViewSet):
+                                    viewsets.GenericViewSet):
     """
     Opvragen en verwijderen van OBJECT-INFORMATIEOBJECT relaties.
 
@@ -520,7 +516,6 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
 
         headers = self.get_success_headers(serializer.data)
         response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        oio_change.send(sender=self.__class__, instance=oio)
         self.notify(response.status_code, oio)
         return response
 
@@ -533,7 +528,6 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
 
         headers = self.get_success_headers(serializer.data)
         response = Response(serializer.data, status=status.HTTP_200_OK, headers=headers)
-        oio_change.send(sender=self.__class__, instance=oio)
         self.notify(response.status_code, oio)
         return response
 
@@ -549,7 +543,6 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
 
         headers = self.get_success_headers(serializer.data)
         response = Response(serializer.data, status=status.HTTP_200_OK, headers=headers)
-        oio_change.send(sender=self.__class__, instance=oio)
         self.notify(response.status_code, oio)
         return response
 
@@ -565,7 +558,6 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
         except (TypeError, KeyError):
             return {}
 
-
         try:
             validator(instance)
         except serializers.ValidationError as exc:
@@ -577,7 +569,7 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
 
 
 class GebruiksrechtenViewSet(NotificationViewSetMixin,
-                             ListFilterByAuthorizationsMixin,
+                            #  ListFilterByAuthorizationsMixin,  TODO: Find a fix for this mixin
                              AuditTrailViewsetMixin,
                              viewsets.ModelViewSet):
     """
