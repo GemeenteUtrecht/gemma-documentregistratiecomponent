@@ -27,8 +27,8 @@ class DRCStorageAdapter:
         data = self.backend.create_document(data=gevalideerde_data.copy(), content=inhoud)
         return data
 
-    def lees_enkelvoudiginformatieobjecten(self, filters):
-        return self.backend.get_documents(filters=filters)
+    def lees_enkelvoudiginformatieobjecten(self, page, page_size, filters):
+        return self.backend.get_documents(page=page, page_size=page_size, filters=filters)
 
     def lees_enkelvoudiginformatieobject(self, identificatie):
         return self.backend.get_document(identification=identificatie)

@@ -285,6 +285,13 @@ class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObj
         ]
 
 
+class PaginateSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField()
+    previous = serializers.URLField()
+    results = RetrieveEnkelvoudigInformatieObjectSerializer(many=True, read_only=True)
+
+
 class EnkelvoudigInformatieObjectWithLockSerializer(EnkelvoudigInformatieObjectSerializer):
     """
     This serializer class is used by EnkelvoudigInformatieObjectViewSet for

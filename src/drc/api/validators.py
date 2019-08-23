@@ -45,42 +45,45 @@ class ObjectInformatieObjectValidator:
     code = 'inconsistent-relation'
 
     def __call__(self, context: OrderedDict):
+        print('= VALIDATION ==================================================')
+        print(context)
         object_url = context['object']
-        informatieobject_uuid = str(context['informatieobject'].latest_version.uuid)
+        informatieobject_url = context['informatieobject']
         object_type = context['object_type']
 
-        informatieobject_url = get_absolute_url(
-            'enkelvoudiginformatieobject-detail',
-            uuid=informatieobject_uuid
-        )
+        # informatieobject_url = get_absolute_url(
+        #     'enkelvoudiginformatieobject-detail',
+        #     uuid=informatieobject_uuid
+        # )
 
+        print('= END VALIDATION ==================================================')
         # dynamic so that it can be mocked in tests easily
         Client = import_string(settings.ZDS_CLIENT_CLASS)
         client = Client.from_url(object_url)
         client.auth = APICredential.get_auth(object_url)
-        try:
-            if object_type == 'zaak':
-                resource = 'zaakinformatieobject'
-                component = 'ZRC'
-            elif object_type == 'besluit':
-                resource = 'besluitinformatieobject'
-                component = 'BRC'
-            oios = client.list(resource, query_params={
-                object_type: object_url,
-                'informatieobject': informatieobject_url
-            })
+        # try:
+        #     if object_type == 'zaak':
+        #         resource = 'zaakinformatieobject'
+        #         component = 'ZRC'
+        #     elif object_type == 'besluit':
+        #         resource = 'besluitinformatieobject'
+        #         component = 'BRC'
+        #     oios = client.list(resource, query_params={
+        #         object_type: object_url,
+        #         'informatieobject': informatieobject_url
+        #     }, zaak_uuid=informatieobject_url.split('/')[-1])
 
-        except ClientError as exc:
-            raise serializers.ValidationError(
-                exc.args[0],
-                code='relation-validation-error'
-            ) from exc
+        # except ClientError as exc:
+        #     raise serializers.ValidationError(
+        #         exc.args[0],
+        #         code='relation-validation-error'
+        #     ) from exc
 
-        if len(oios) == 0:
-            raise serializers.ValidationError(
-                self.message.format(component=component),
-                code=self.code
-            )
+        # if len(oios) == 0:
+        #     raise serializers.ValidationError(
+        #         self.message.format(component=component),
+        #         code=self.code
+        #     )
 
 
 class RemoteRelationValidator:
@@ -132,11 +135,11 @@ class InformatieObjectUniqueValidator:
         object_url = context['object']
         informatieobject = context['informatieobject']
 
-        oios = informatieobject.objectinformatieobject_set.filter(object=object_url)
+        # oios = informatieobject.objectinformatieobject_set.filter(object=object_url)
 
-        if oios:
-            field_names = (self.remote_resource_field, self.field)
-            raise serializers.ValidationError(
-                detail=self.message.format(field_names=field_names),
-                code=self.code
-            )
+        # if oios:
+        #     field_names = (self.remote_resource_field, self.field)
+        #     raise serializers.ValidationError(
+        #         detail=self.message.format(field_names=field_names),
+        #         code=self.code
+        #     )

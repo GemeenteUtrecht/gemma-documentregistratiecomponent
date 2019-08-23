@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.db import transaction
 from django.http.response import Http404
 from django.shortcuts import get_list_or_404, get_object_or_404
@@ -54,7 +55,7 @@ from .serializers import (
     EnkelvoudigInformatieObjectSerializer,
     EnkelvoudigInformatieObjectWithLockSerializer, GebruiksrechtenSerializer,
     LockEnkelvoudigInformatieObjectSerializer,
-    ObjectInformatieObjectSerializer,
+    ObjectInformatieObjectSerializer, PaginateSerializer,
     RetrieveEnkelvoudigInformatieObjectSerializer,
     UnlockEnkelvoudigInformatieObjectSerializer
 )
@@ -222,6 +223,7 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
     notifications_kanaal = KANAAL_DOCUMENTEN
     notifications_resource = 'enkelvoudiginformatieobject'
     notifications_model = EnkelvoudigInformatieObject
+    model = EnkelvoudigInformatieObject
 
     pagination_class = PageNumberPagination
     audit = AUDIT_DRC
@@ -245,11 +247,12 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         if not filters.is_valid():
             return Response(filters.errors, status=400)
 
-        documents_data = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(filters=filters.form.cleaned_data)
-
-        documents_data
-        serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=documents_data, many=True)
-        # TODO: Build in pagination......
+        documents_data = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(
+            page=int(request.GET.get('page', 1)),
+            page_size=settings.REST_FRAMEWORK.get('PAGE_SIZE'),
+            filters=filters.form.cleaned_data,
+        )
+        serializer = PaginateSerializer(instance=documents_data)
         return Response(serializer.data)
 
     def get_object(self, **kwargs):
@@ -495,11 +498,17 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
     }
     audit = AUDIT_DRC
     audittrail_main_resource_key = 'informatieobject'
+    model = ObjectInformatieObject
+
+    def get_object(self, **kwargs):
+        document_data = drc_storage_adapter.lees_objectinformatieobject(kwargs.get('uuid'))
+        return document_data
 
     def list(self, request, version=None):
         documents_data = drc_storage_adapter.lees_objectinformatieobjecten()
         serializer = ObjectInformatieObjectSerializer(instance=documents_data, many=True)
         return Response(serializer.data)
+
     def perform_destroy(self, instance):
         # destroy is only allowed if the remote relation does no longer exist, so check for that
         validator = RemoteRelationValidator()

@@ -38,7 +38,7 @@ class EnkelvoudigInformatieObjectCanonicalAdmin(PrivateMediaMixin, admin.ModelAd
 
 @admin.register(EnkelvoudigInformatieObject)
 class EnkelvoudigInformatieObjectAdmin(admin.ModelAdmin):
-    list_display = ("identificatie", "uuid", "bronorganisatie", "titel", "versie",)
+    list_display = ("identificatie", "uuid", "bronorganisatie", "titel", "informatieobjecttype", "versie",)
     list_filter = ("bronorganisatie",)
     search_fields = ("identificatie", "uuid",)
     ordering = ("-begin_registratie",)

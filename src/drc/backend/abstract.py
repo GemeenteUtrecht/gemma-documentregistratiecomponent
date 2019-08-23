@@ -1,4 +1,6 @@
-from .data import EnkelvoudigInformatieObject, ObjectInformatieObject
+from .data import (
+    EnkelvoudigInformatieObject, ObjectInformatieObject, PaginationObject
+)
 from .exceptions import BackendException
 
 
@@ -10,6 +12,7 @@ class BaseDRCStorageBackend:
         self.exception_class = BackendException
         self.eio_dataclass = EnkelvoudigInformatieObject
         self.oio_dataclass = ObjectInformatieObject
+        self.pagination_dataclass = PaginationObject
 
     def create_document(self, data, content):
         """
@@ -28,7 +31,7 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def get_documents(self, filters=None):
+    def get_documents(self, page, page_size, filters=None):
         """
         Fetch all documents.
 
