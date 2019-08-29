@@ -42,6 +42,8 @@ class EnkelvoudigInformatieObject:
     def latest_version(self):
         return self
 
+    def unique_representation(self):
+        return f"{self.bronorganisatie} - {self.identificatie}"
 
 
 @dataclass

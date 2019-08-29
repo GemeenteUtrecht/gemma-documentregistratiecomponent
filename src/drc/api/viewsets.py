@@ -2,7 +2,7 @@ import logging
 
 from django.conf import settings
 from django.db import transaction
-from django.http.response import Http404
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404
 from django.utils import dateparse, timezone
 from django.utils.translation import ugettext_lazy as _
@@ -19,6 +19,7 @@ from vng_api_common.audittrails.viewsets import (
     AuditTrailCreateMixin, AuditTrailDestroyMixin, AuditTrailViewSet,
     AuditTrailViewsetMixin
 )
+from vng_api_common.constants import CommonResourceAction
 from vng_api_common.filters import Backend
 from vng_api_common.notifications.viewsets import (
     NotificationCreateMixin, NotificationDestroyMixin,
@@ -120,7 +121,7 @@ class SerializerClassMixin:
 
 class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
                                          NotificationMixin,
-                                        #  ListFilterByAuthorizationsMixin, TODO: Find a fix for this mixin
+                                         # ListFilterByAuthorizationsMixin,  # TODO: Find a fix for this mixin
                                          AuditTrailViewsetMixin,
                                          viewsets.ViewSet):
     """
@@ -272,9 +273,17 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         headers = self.get_success_headers(return_serializer.data)
         response = Response(return_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         self.notify(response.status_code, data)
+        self.create_audittrail(
+            response.status_code,
+            CommonResourceAction.create,
+            version_before_edit=None,
+            version_after_edit=data,
+            unique_representation=data.unique_representation()
+        )
         return response
 
     def update(self, request, uuid=None, version=None):
+        before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.update(uuid)
@@ -283,9 +292,17 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         headers = self.get_success_headers(return_serializer.data)
         response = Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
         self.notify(response.status_code, data)
+        self.create_audittrail(
+            response.status_code,
+            CommonResourceAction.update,
+            version_before_edit=before,
+            version_after_edit=data,
+            unique_representation=data.unique_representation()
+        )
         return response
 
     def partial_update(self, request, uuid=None, version=None):
+        before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
         serializer = self.get_serializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.update(uuid)
@@ -294,47 +311,28 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         headers = self.get_success_headers(return_serializer.data)
         response = Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
         self.notify(response.status_code, data)
+        self.create_audittrail(
+            response.status_code,
+            CommonResourceAction.partial_update,
+            version_before_edit=before,
+            version_after_edit=data,
+            unique_representation=data.unique_representation()
+        )
         return response
 
     def destroy(self, request, uuid=None, version=None):
+        before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
         data = drc_storage_adapter.verwijder_enkelvoudiginformatieobject(uuid)
         response = Response(status=status.HTTP_204_NO_CONTENT)
         self.notify(response.status_code, data)
+        self.create_audittrail(
+            response.status_code,
+            CommonResourceAction.destroy,
+            version_before_edit=before,
+            version_after_edit=None,
+            unique_representation=data.unique_representation()
+        )
         return response
-
-    def get_success_headers(self, data):
-        try:
-            return {'Location': str(data[api_settings.URL_FIELD_NAME])}
-        except (TypeError, KeyError):
-            return {}
-
-
-class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, viewsets.ViewSet):
-    @property
-    def filterset_class(self):
-        """
-        To support filtering by versie and registratieOp for detail view
-        """
-        if self.detail:
-            return EnkelvoudigInformatieObjectDetailFilter
-        return EnkelvoudigInformatieObjectListFilter
-
-    def get_serializer_class(self):
-        """
-        To validate that a lock id is sent only with PUT and PATCH operations
-        """
-        if self.action in ['update', 'partial_update']:
-            return EnkelvoudigInformatieObjectWithLockSerializer
-        return EnkelvoudigInformatieObjectSerializer
-
-    @swagger_auto_schema(
-        manual_parameters=[
-            VERSIE_QUERY_PARAM,
-            REGISTRATIE_QUERY_PARAM
-        ]
-    )
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
 
     @swagger_auto_schema(
         method='get',
@@ -363,13 +361,12 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, vie
     )
     @action(methods=['get'], detail=True, name='enkelvoudiginformatieobject_download')
     def download(self, request, *args, **kwargs):
-        eio = self.get_object()
-        return sendfile(
-            request,
-            eio.inhoud.path,
-            attachment=True,
-            mimetype='application/octet-stream'
-        )
+        content, filename = drc_storage_adapter.lees_enkelvoudiginformatieobject_inhoud(kwargs.get('uuid'))
+        content_type = "application/octet-stream"
+
+        response = StreamingHttpResponse(streaming_content=content, content_type=content_type)
+        response["Content-Disposition"] = f"attachment; filename={filename}.bin"
+        return response
 
     @swagger_auto_schema(
         request_body=LockEnkelvoudigInformatieObjectSerializer,
@@ -431,6 +428,33 @@ class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, vie
         unlock_serializer.is_valid(raise_exception=True)
         unlock_serializer.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_success_headers(self, data):
+        try:
+            return {'Location': str(data[api_settings.URL_FIELD_NAME])}
+        except (TypeError, KeyError):
+            return {}
+
+
+class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, viewsets.ViewSet):
+
+
+    def get_serializer_class(self):
+        """
+        To validate that a lock id is sent only with PUT and PATCH operations
+        """
+        if self.action in ['update', 'partial_update']:
+            return EnkelvoudigInformatieObjectWithLockSerializer
+        return EnkelvoudigInformatieObjectSerializer
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            VERSIE_QUERY_PARAM,
+            REGISTRATIE_QUERY_PARAM
+        ]
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
 
 class ObjectInformatieObjectViewSet(NotificationCreateMixin,
@@ -501,7 +525,7 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
     model = ObjectInformatieObject
 
     def get_object(self, **kwargs):
-        document_data = drc_storage_adapter.lees_objectinformatieobject(kwargs.get('uuid'))
+        document_data = drc_storage_adapter.lees_objectinformatieobject(kwargs.get('uuid'), via_uuid=True)
         return document_data
 
     def list(self, request, version=None):
@@ -654,4 +678,4 @@ class EnkelvoudigInformatieObjectAuditTrailViewSet(AuditTrailViewSet):
 
     Een specifieke audit trail regel opvragen.
     """
-    main_resource_lookup_field = 'enkelvoudiginformatieobject_uuid'
+    main_resource_lookup_field = 'enkelvoudiginformatieobjecten_uuid'

@@ -47,12 +47,12 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def get_document(self, identification):
+    def get_document(self, uuid, via_uuid=False):
         """
         Get a single a document.
 
         Args:
-            identification (str): The cmis object id (only the uuid part)
+            uuid (str): The cmis object id (only the uuid part)
 
         Returns:
             dataclass: An enkelvoudig informatieobject dataclass.
@@ -63,12 +63,28 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def update_document(self, identification, data, content=None):
+    def get_document_content(self, uuid):
+        """
+        Get a single a document.
+
+        Args:
+            uuid (str): The cmis object id (only the uuid part)
+
+        Returns:
+            dataclass: An enkelvoudig informatieobject dataclass.
+
+        Raises:
+            NotImpletedError: This is not implemented yet.
+
+        """
+        raise NotImplementedError()
+
+    def update_document(self, uuid, data, content=None):
         """
         Update a document.
 
         Args:
-            identification (str): The identification from the document.
+            uuid (str): The uuid from the document.
             data (dict): A dict with the fields that need to be updated.
             content (BytesStream): The content of the document.
 
@@ -81,12 +97,12 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def delete_document(self, identification):
+    def delete_document(self, uuid):
         """
         Deletes a document.
 
         Args:
-            identification (str): The identification of the document.
+            uuid (str): The uuid of the document.
 
         Returns:
             dataclass: An enkelvoudig informatieobject dataclass.
@@ -126,12 +142,12 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def get_document_case_connection(self, identification):
+    def get_document_case_connection(self, uuid, via_uuid=False):
         """
         Get a single document that has a case url.
 
         Args:
-            identification (str): the CMIS id from the connected document.
+            uuid (str): the CMIS id from the connected document.
 
         Returns:
             dataclass: A object informatieobject dataclass.
@@ -142,12 +158,12 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def update_document_case_connection(self, identification, data):
+    def update_document_case_connection(self, uuid, data):
         """
         Updates a document/case connection.
 
         Args:
-            identification (str): The CMIS id of the document.
+            uuid (str): The CMIS id of the document.
             data (dict): The data that needs to be updated.
 
         Returns:
@@ -159,12 +175,12 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def delete_document_case_connection(self, identification):
+    def delete_document_case_connection(self, uuid):
         """
         Remove the connection between a document and a case.
 
         Args:
-            identification (str): The CMIS id of the document.
+            uuid (str): The CMIS id of the document.
 
         Returns:
             dataclass: A object informatieobject dataclass.
