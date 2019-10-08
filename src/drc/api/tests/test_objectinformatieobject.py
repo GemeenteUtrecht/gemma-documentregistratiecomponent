@@ -21,7 +21,8 @@ BESLUIT = 'https://brc.nl/api/v1/besluiten/4321'
 
 @override_settings(
     LINK_FETCHER='vng_api_common.mocks.link_fetcher_200',
-    ZDS_CLIENT_CLASS='vng_api_common.mocks.MockClient'
+    ZDS_CLIENT_CLASS='vng_api_common.mocks.MockClient',
+    ALLOWD_HOSTS=["testserver.nl"]
 )
 class ObjectInformatieObjectTests(JWTAuthMixin, APITestCase):
     heeft_alle_autorisaties = True
@@ -30,7 +31,7 @@ class ObjectInformatieObjectTests(JWTAuthMixin, APITestCase):
 
     def test_create_with_objecttype_zaak(self):
         eio = EnkelvoudigInformatieObjectFactory.create()
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eio_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio.uuid
         })
 
@@ -47,7 +48,7 @@ class ObjectInformatieObjectTests(JWTAuthMixin, APITestCase):
 
     def test_create_with_objecttype_besluit(self):
         eio = EnkelvoudigInformatieObjectFactory.create()
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eio_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio.uuid
         })
 
@@ -69,7 +70,7 @@ class ObjectInformatieObjectTests(JWTAuthMixin, APITestCase):
         oio = ObjectInformatieObjectFactory.create(
             is_zaak=True,
         )
-        enkelvoudig_informatie_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        enkelvoudig_informatie_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': oio.informatieobject.latest_version.uuid
         })
 
@@ -90,7 +91,7 @@ class ObjectInformatieObjectTests(JWTAuthMixin, APITestCase):
         oio = ObjectInformatieObjectFactory.create(
             is_zaak=True,
         )
-        eo_detail_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eo_detail_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': oio.informatieobject.latest_version.uuid
         })
 

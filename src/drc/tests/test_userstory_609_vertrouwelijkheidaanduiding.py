@@ -35,7 +35,7 @@ class US609TestCase(TypeCheckMixin, JWTAuthMixin, APITestCase):
         Assert that the default vertrouwelijkheidaanduiding is set
         from informatieobjecttype
         """
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
         responses = {
             INFORMATIEOBJECTTYPE: {
                 'url': INFORMATIEOBJECTTYPE,
@@ -69,7 +69,7 @@ class US609TestCase(TypeCheckMixin, JWTAuthMixin, APITestCase):
         """
         Assert the explicit set of vertrouwelijkheidaanduiding
         """
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
         responses = {
             INFORMATIEOBJECTTYPE: {
                 'url': INFORMATIEOBJECTTYPE,

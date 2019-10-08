@@ -40,7 +40,7 @@ class EnkelvoudigInformatieObjectTests(JWTAuthMixin, APITestCase):
 
     @override_settings(LINK_FETCHER='vng_api_common.mocks.link_fetcher_404')
     def test_validate_informatieobjecttype_invalid(self):
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
 
         response = self.client.post(url, {
             'informatieobjecttype': INFORMATIEOBJECTTYPE,
@@ -51,7 +51,7 @@ class EnkelvoudigInformatieObjectTests(JWTAuthMixin, APITestCase):
         self.assertEqual(error['code'], URLValidator.code)
 
     def test_link_fetcher_cannot_connect(self):
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
 
         response = self.client.post(url, {
             'informatieobjecttype': 'http://invalid-host/informatieobjecttype/foo',
@@ -60,7 +60,7 @@ class EnkelvoudigInformatieObjectTests(JWTAuthMixin, APITestCase):
         self.assertNotEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def test_integriteit(self):
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
 
         base_body = {
             'algoritme': 'MD5',
@@ -77,7 +77,7 @@ class EnkelvoudigInformatieObjectTests(JWTAuthMixin, APITestCase):
         self.assertGegevensGroepRequired(url, 'integriteit', base_body, cases)
 
     def test_integriteit_bad_values(self):
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
 
         base_body = {
             'algoritme': 'MD5',
@@ -94,7 +94,7 @@ class EnkelvoudigInformatieObjectTests(JWTAuthMixin, APITestCase):
         self.assertGegevensGroepValidation(url, 'integriteit', base_body, cases)
 
     def test_ondertekening(self):
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
 
         base_body = {
             'soort': OndertekeningSoorten.analoog,
@@ -109,7 +109,7 @@ class EnkelvoudigInformatieObjectTests(JWTAuthMixin, APITestCase):
         self.assertGegevensGroepRequired(url, 'ondertekening', base_body, cases)
 
     def test_ondertekening_bad_values(self):
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
 
         base_body = {
             'soort': OndertekeningSoorten.digitaal,
@@ -126,7 +126,7 @@ class EnkelvoudigInformatieObjectTests(JWTAuthMixin, APITestCase):
 @override_settings(LINK_FETCHER='vng_api_common.mocks.link_fetcher_200')
 class InformatieObjectStatusTests(JWTAuthMixin, APITestCase):
 
-    url = reverse_lazy('enkelvoudiginformatieobject-list')
+    url = reverse_lazy('enkelvoudiginformatieobjecten-list')
     heeft_alle_autorisaties = True
 
     def test_ontvangen_informatieobjecten(self):
@@ -208,7 +208,7 @@ class FilterValidationTests(JWTAuthMixin, APITestCase):
     heeft_alle_autorisaties = True
 
     def test_oio_invalid_filters(self):
-        url = reverse('objectinformatieobject-list')
+        url = reverse('objectinformatieobjecten-list')
 
         invalid_filters = {
             'object': '123',  # must be url

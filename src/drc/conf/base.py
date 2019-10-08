@@ -437,3 +437,4 @@ TEMP_DOCUMENT_CLASS = 'drc.backend.utils.TempDocument'
 
 HOST_URL = os.getenv("HOST_URL", 'http://localhost:8000')
 DEFAULT_NOTIFICATIONS_HANDLER = 'drc_cmis.notifications.default'
+BASE_FOLDER_LOCATION = "DRC"

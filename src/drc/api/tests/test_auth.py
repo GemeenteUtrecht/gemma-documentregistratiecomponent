@@ -20,7 +20,7 @@ from ..scopes import SCOPE_DOCUMENTEN_ALLES_LEZEN
 class InformatieObjectScopeForbiddenTests(AuthCheckMixin, APITestCase):
 
     def test_cannot_create_io_without_correct_scope(self):
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
         self.assertForbidden(url, method='post')
 
     def test_cannot_read_without_correct_scope(self):
@@ -28,13 +28,13 @@ class InformatieObjectScopeForbiddenTests(AuthCheckMixin, APITestCase):
         gebruiksrechten = GebruiksrechtenFactory.create()
         oio = ObjectInformatieObjectFactory.create(is_besluit=True)
         urls = [
-            reverse('enkelvoudiginformatieobject-list'),
+            reverse('enkelvoudiginformatieobjecten-list'),
             reverse('enkelvoudiginformatieobject-detail', kwargs={
                 'uuid': eio.uuid
             }),
             reverse('gebruiksrechten-list'),
             reverse(gebruiksrechten),
-            reverse('objectinformatieobject-list'),
+            reverse('objectinformatieobjecten-list'),
             reverse(oio),
         ]
 
@@ -69,7 +69,7 @@ class InformatieObjectReadCorrectScopeTests(JWTAuthMixin, APITestCase):
             informatieobjecttype='https://informatieobjecttype.nl/not_ok',
             vertrouwelijkheidaanduiding=VertrouwelijkheidsAanduiding.zeer_geheim
         )
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
 
         response = self.client.get(url)
 
@@ -130,7 +130,7 @@ class InformatieObjectReadCorrectScopeTests(JWTAuthMixin, APITestCase):
             informatieobjecttype='https://informatieobjecttype.nl/not_ok',
             vertrouwelijkheidaanduiding=VertrouwelijkheidsAanduiding.zeer_geheim
         )
-        url = reverse('enkelvoudiginformatieobject-list')
+        url = reverse('enkelvoudiginformatieobjecten-list')
 
         response = self.client.get(url)
 
@@ -208,7 +208,7 @@ class OioReadTests(JWTAuthMixin, APITestCase):
     max_vertrouwelijkheidaanduiding = VertrouwelijkheidsAanduiding.openbaar
 
     def test_list_oio_limited_to_authorized_zaken(self):
-        url = reverse('objectinformatieobject-list')
+        url = reverse('objectinformatieobjecten-list')
         # must show up
         oio1 = ObjectInformatieObjectFactory.create(
             informatieobject__latest_version__informatieobjecttype='https://informatieobjecttype.nl/ok',
