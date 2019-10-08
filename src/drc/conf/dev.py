@@ -31,11 +31,6 @@ LOGGING['loggers'].update({
         'level': 'DEBUG',
         'propagate': True,
     },
-    'drc_cmis': {
-        'handlers': ['cmis', 'console'],
-        'level': 'INFO',
-        'propagate': False,
-    },
     'django': {
         'handlers': ['console'],
         'level': 'DEBUG',

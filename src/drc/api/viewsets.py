@@ -229,19 +229,9 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
     pagination_class = PageNumberPagination
     audit = AUDIT_DRC
 
-    # @transaction.atomic
-    # def perform_destroy(self, instance):
-    #     if instance.canonical.objectinformatieobject_set.exists():
-    #         raise serializers.ValidationError({
-    #             api_settings.NON_FIELD_ERRORS_KEY: _(
-    #                 "All relations to the document must be destroyed before destroying the document"
-    #             )},
-    #             code="pending-relations"
-    #         )
-
-    #     documents_data = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(filters=filters.form.cleaned_data)
-    #     serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=documents_data, many=True)
-    #     return Response(serializer.data)
+    def get_object(self, **kwargs):
+        document_data = drc_storage_adapter.lees_enkelvoudiginformatieobject(kwargs.get('uuid'))
+        return document_data
 
     def list(self, request, version=None):
         filters = self.filterset_class(data=self.request.GET)
@@ -255,10 +245,6 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         )
         serializer = PaginateSerializer(instance=documents_data)
         return Response(serializer.data)
-
-    def get_object(self, **kwargs):
-        document_data = drc_storage_adapter.lees_enkelvoudiginformatieobject(kwargs.get('uuid'))
-        return document_data
 
     def retrieve(self, request, uuid=None, version=None):
         serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=self.get_object(uuid=uuid))
@@ -385,12 +371,8 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
     )
     @action(detail=True, methods=['post'])
     def lock(self, request, *args, **kwargs):
-        eio = self.get_object()
-        canonical = eio.canonical
-        lock_serializer = LockEnkelvoudigInformatieObjectSerializer(canonical, data=request.data)
-        lock_serializer.is_valid(raise_exception=True)
-        lock_serializer.save()
-        return Response(lock_serializer.data)
+        checkout_id = drc_storage_adapter.lock_enkelvoudiginformatieobject(kwargs.get('uuid'))
+        return Response({'lock': checkout_id})
 
     @swagger_auto_schema(
         request_body=UnlockEnkelvoudigInformatieObjectSerializer,
@@ -409,24 +391,8 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
     )
     @action(detail=True, methods=['post'])
     def unlock(self, request, *args, **kwargs):
-        eio = self.get_object()
-        canonical = eio.canonical
-        # check if it's a force unlock by administrator
-        force_unlock = False
-        if self.request.jwt_auth.has_auth(
-            scopes=SCOPE_DOCUMENTEN_GEFORCEERD_UNLOCK,
-            informatieobjecttype=eio.informatieobjecttype,
-            vertrouwelijkheidaanduiding=eio.vertrouwelijkheidaanduiding
-        ):
-            force_unlock = True
 
-        unlock_serializer = UnlockEnkelvoudigInformatieObjectSerializer(
-            canonical,
-            data=request.data,
-            context={'force_unlock': force_unlock}
-        )
-        unlock_serializer.is_valid(raise_exception=True)
-        unlock_serializer.save()
+        response = drc_storage_adapter.unlock_enkelvoudiginformatieobject(kwargs.get('uuid'))
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_success_headers(self, data):
@@ -436,36 +402,13 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
             return {}
 
 
-class ObjectInformatieObjectViewSet(SerializerClassMixin, NotificationMixin, viewsets.ViewSet):
-
-
-    def get_serializer_class(self):
-        """
-        To validate that a lock id is sent only with PUT and PATCH operations
-        """
-        if self.action in ['update', 'partial_update']:
-            return EnkelvoudigInformatieObjectWithLockSerializer
-        return EnkelvoudigInformatieObjectSerializer
-
-    @swagger_auto_schema(
-        manual_parameters=[
-            VERSIE_QUERY_PARAM,
-            REGISTRATIE_QUERY_PARAM
-        ]
-    )
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
-
-
 class ObjectInformatieObjectViewSet(NotificationCreateMixin,
                                     NotificationDestroyMixin,
                                     AuditTrailCreateMixin,
                                     AuditTrailDestroyMixin,
                                     CheckQueryParamsMixin,
                                     # ListFilterByAuthorizationsMixin,  TODO: Find a fix for this mixin
-                                    mixins.CreateModelMixin,
-                                    mixins.DestroyModelMixin,
-                                    viewsets.GenericViewSet):
+                                    viewsets.ViewSet):
     """
     Opvragen en verwijderen van OBJECT-INFORMATIEOBJECT relaties.
 
@@ -553,7 +496,6 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
         return response
 
     def update(self, request, uuid=None, version=None):
-        print(request.data)
         serializer = ObjectInformatieObjectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         logger.error(dict(serializer.errors))

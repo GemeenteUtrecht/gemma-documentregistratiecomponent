@@ -36,6 +36,7 @@ class EnkelvoudigInformatieObject:
     integriteit_algoritme: str
     integriteit_waarde: str
     bestandsomvang: str
+    locked: bool
 
     #TODO: Fix a little better
     @property

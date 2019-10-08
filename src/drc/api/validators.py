@@ -45,8 +45,6 @@ class ObjectInformatieObjectValidator:
     code = 'inconsistent-relation'
 
     def __call__(self, context: OrderedDict):
-        print('= VALIDATION ==================================================')
-        print(context)
         object_url = context['object']
         informatieobject_url = context['informatieobject']
         object_type = context['object_type']
@@ -56,7 +54,6 @@ class ObjectInformatieObjectValidator:
         #     uuid=informatieobject_uuid
         # )
 
-        print('= END VALIDATION ==================================================')
         # dynamic so that it can be mocked in tests easily
         Client = import_string(settings.ZDS_CLIENT_CLASS)
         client = Client.from_url(object_url)

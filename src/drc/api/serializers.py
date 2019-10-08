@@ -197,13 +197,6 @@ class BaseEnkelvoudigInformatieObjectSerializer(serializers.Serializer):
         label=_("integriteit"), allow_null=True, required=False,
         help_text=_("Uitdrukking van mate van volledigheid en onbeschadigd zijn van digitaal bestand.")
     )
-    locked = serializers.BooleanField(
-        label=_("locked"), read_only=True, source='canonical.lock',
-        help_text=_(
-            "Geeft aan of het document gelocked is. Alleen als een document gelocked is, "
-            "mogen er aanpassingen gemaakt worden."
-        )
-    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -271,6 +264,13 @@ class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObj
         read_only=True, min_value=0,
         help_text=_("Aantal bytes dat de inhoud van INFORMATIEOBJECT in beslag neemt.")
     )
+    locked = serializers.BooleanField(
+        label=_("locked"),
+        help_text=_(
+            "Geeft aan of het document gelocked is. Alleen als een document gelocked is, "
+            "mogen er aanpassingen gemaakt worden."
+        )
+    )
 
     def create(self):
         raise NotImplementedError('This should not be used')
@@ -334,14 +334,11 @@ class LockEnkelvoudigInformatieObjectSerializer(serializers.ModelSerializer):
     Serializer for the lock action of EnkelvoudigInformatieObjectCanonical
     model
     """
-    class Meta:
-        model = EnkelvoudigInformatieObjectCanonical
-        fields = ('lock', )
-        extra_kwargs = {
-            'lock': {
-                'read_only': True,
-            }
-        }
+    lock = serializers.CharField(
+        read_only=True,
+        help_text=_("Lock must be provided during updating the document (PATCH, PUT), "
+                    "not while creating it"),
+    )
 
     def validate(self, attrs):
         valid_attrs = super().validate(attrs)

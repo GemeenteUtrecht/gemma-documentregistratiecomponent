@@ -113,6 +113,12 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
+    def lock_document(self, uuid):
+        raise NotImplementedError()
+
+    def unlock_document(self, uuid):
+        raise NotImplementedError()
+
     def create_document_case_connection(self, data):
         """
         Creates a connection between a document and a case folder.

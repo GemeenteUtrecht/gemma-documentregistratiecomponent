@@ -47,6 +47,12 @@ class DRCStorageAdapter:
     def verwijder_enkelvoudiginformatieobject(self, uuid):
         return self.backend().delete_document(uuid=uuid)
 
+    def lock_enkelvoudiginformatieobject(self, uuid):
+        return self.backend().lock_document(uuid=uuid)
+
+    def unlock_enkelvoudiginformatieobject(self, uuid):
+        return self.backend().unlock_document(uuid=uuid)
+
     # Connecties
     def creeer_objectinformatieobject(self, gevalideerde_data):
         gevalideerde_data['registratiedatum'] = timezone.now()
