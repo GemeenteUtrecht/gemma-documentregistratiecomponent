@@ -4,6 +4,7 @@
 #
 #    pip-compile --no-index --output-file requirements/jenkins.txt requirements/base.txt requirements/testing.in requirements/jenkins.in
 #
+-e git+git://github.com/GemeenteUtrecht/vng-api-common@feature/drc-cmis#egg=vng_api_common
 alabaster==0.7.12
 astroid==1.6.5            # via pylint
 babel==2.6.0
@@ -35,7 +36,7 @@ djangorestframework-filters==0.10.2
 djangorestframework-gis==0.14
 djangorestframework==3.9.4
 docutils==0.14
-drc-cmis==0.2.4
+drc-cmis==0.3.2
 drf-nested-routers==0.90.2
 drf-yasg==1.16.0
 factory-boy==2.11.1
@@ -50,6 +51,7 @@ imagesize==1.1.0
 import-class==0.1.1
 inflection==0.3.1
 iso-639==0.4.5
+iso-8601==0.3.0
 iso8601==0.1.12
 isodate==0.6.0
 isort==4.3.4
@@ -89,7 +91,6 @@ text-unidecode==1.2       # via faker
 unidecode==1.0.22
 uritemplate==3.0.0
 urllib3==1.24.3
-vng-api-common==1.0.1
 waitress==1.1.0           # via webtest
 webob==1.8.2              # via webtest
 webtest==2.0.30

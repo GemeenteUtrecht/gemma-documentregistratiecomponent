@@ -1,5 +1,6 @@
 from django_filters import rest_framework as filters
-from vng_api_common.filters import URLModelChoiceFilter
+from django_filters.filterset import DateTimeFilter
+from vng_api_common.filters import URLFilter, URLModelChoiceFilter
 from vng_api_common.filtersets import FilterSet
 from vng_api_common.utils import get_help_text
 
@@ -26,12 +27,22 @@ class EnkelvoudigInformatieObjectDetailFilter(FilterSet):
         label='begin_registratie',
     )
 
+    class Meta:
+        model = EnkelvoudigInformatieObject
+        fields = (
+            'versie',
+            'registratie_op',
+        )
+
 
 class ObjectInformatieObjectFilter(FilterSet):
-    informatieobject = URLModelChoiceFilter(
-        queryset=EnkelvoudigInformatieObjectCanonical.objects.all(),
-        instance_path='canonical',
+    informatieobject = URLFilter(
         help_text=get_help_text('datamodel.ObjectInformatieObject', 'informatieobject'),
+        required=False,
+    )
+    object = URLFilter(
+        help_text=get_help_text('datamodel.ObjectInformatieObject', 'object'),
+        required=False,
     )
 
     class Meta:

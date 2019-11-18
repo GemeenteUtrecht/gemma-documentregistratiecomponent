@@ -29,7 +29,7 @@ class InformatieObjectScopeForbiddenTests(AuthCheckMixin, APITestCase):
         oio = ObjectInformatieObjectFactory.create(is_besluit=True)
         urls = [
             reverse('enkelvoudiginformatieobjecten-list'),
-            reverse('enkelvoudiginformatieobject-detail', kwargs={
+            reverse('enkelvoudiginformatieobjecten-detail', kwargs={
                 'uuid': eio.uuid
             }),
             reverse('gebruiksrechten-list'),
@@ -94,10 +94,10 @@ class InformatieObjectReadCorrectScopeTests(JWTAuthMixin, APITestCase):
             informatieobjecttype='https://informatieobjecttype.nl/ok',
             vertrouwelijkheidaanduiding=VertrouwelijkheidsAanduiding.zeer_geheim
         )
-        url1 = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        url1 = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio1.uuid
         })
-        url2 = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        url2 = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio2.uuid
         })
 
@@ -191,7 +191,7 @@ class GebruiksrechtenReadTests(JWTAuthMixin, APITestCase):
                 vertrouwelijkheidaanduiding=eio.vertrouwelijkheidaanduiding
             ):
                 response = self.client.post(url, {
-                    'informatieobject': reverse('enkelvoudiginformatieobject-detail', kwargs={
+                    'informatieobject': reverse('enkelvoudiginformatieobjecten-detail', kwargs={
                         'uuid': eio.uuid
                     }),
                     'startdatum': '2018-12-24T00:00:00Z',

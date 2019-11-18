@@ -47,7 +47,7 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def get_document(self, uuid, via_uuid=False):
+    def get_document(self, uuid, version=None, filters=None):
         """
         Get a single a document.
 
@@ -79,7 +79,7 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def update_document(self, uuid, data, content=None):
+    def update_document(self, uuid, lock, data, content=None):
         """
         Update a document.
 
@@ -116,7 +116,7 @@ class BaseDRCStorageBackend:
     def lock_document(self, uuid):
         raise NotImplementedError()
 
-    def unlock_document(self, uuid):
+    def unlock_document(self, uuid, lock, force=False):
         raise NotImplementedError()
 
     def create_document_case_connection(self, data):
@@ -135,7 +135,7 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def get_document_case_connections(self):
+    def get_document_case_connections(self, filters=None):
         """
         Get all documents that have a case url.
 
@@ -148,7 +148,7 @@ class BaseDRCStorageBackend:
         """
         raise NotImplementedError()
 
-    def get_document_case_connection(self, uuid, via_uuid=False):
+    def get_document_case_connection(self, uuid):
         """
         Get a single document that has a case url.
 

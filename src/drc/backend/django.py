@@ -63,7 +63,7 @@ class DjangoDRCStorageBackend(import_string(settings.ABSTRACT_BASE_CLASS)):
         oio = ObjectInformatieObject.objects.create(informatieobject=eio, **data)
         return oio
 
-    def get_document_case_connections(self):
+    def get_document_case_connections(self, filters=None):
         from drc.datamodel.models import ObjectInformatieObject
         return ObjectInformatieObject.objects.all()
 

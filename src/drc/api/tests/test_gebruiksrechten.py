@@ -3,7 +3,6 @@ from rest_framework.test import APITestCase
 from vng_api_common.tests import JWTAuthMixin, get_validation_errors
 
 from drc.datamodel.tests.factories import (
-    EnkelvoudigInformatieObjectCanonicalFactory,
     EnkelvoudigInformatieObjectFactory, GebruiksrechtenFactory
 )
 
@@ -17,13 +16,12 @@ class GebruiksrechtenTests(JWTAuthMixin, APITestCase):
 
     def test_create(self):
         url = reverse('gebruiksrechten-list')
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create(
-            latest_version__creatiedatum='2018-12-24',
-            latest_version__informatieobjecttype=INFORMATIEOBJECTTYPE
+        eio = EnkelvoudigInformatieObjectFactory.create(
+            creatiedatum='2018-12-24',
+            informatieobjecttype=INFORMATIEOBJECTTYPE
         )
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={'uuid': eio.latest_version.uuid})
 
-        eio_detail = self.client.get(eio_url)
+        eio_detail = self.client.get(eio.url)
 
         self.assertIsNone(eio_detail.json()['indicatieGebruiksrecht'])
 
@@ -48,7 +46,7 @@ class GebruiksrechtenTests(JWTAuthMixin, APITestCase):
             informatieobject__latest_version__informatieobjecttype=INFORMATIEOBJECTTYPE
         )
         url = reverse(
-            'enkelvoudiginformatieobject-detail',
+            'enkelvoudiginformatieobjecten-detail',
             kwargs={'uuid': gebruiksrechten.informatieobject.latest_version.uuid}
         )
 
@@ -68,7 +66,7 @@ class GebruiksrechtenTests(JWTAuthMixin, APITestCase):
         eio = EnkelvoudigInformatieObjectFactory.create(
             informatieobjecttype=INFORMATIEOBJECTTYPE
         )
-        url = reverse('enkelvoudiginformatieobject-detail', kwargs={'uuid': eio.uuid})
+        url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={'uuid': eio.uuid})
 
         response = self.client.patch(url, {'indicatieGebruiksrecht': True})
 
@@ -80,12 +78,13 @@ class GebruiksrechtenTests(JWTAuthMixin, APITestCase):
         gebruiksrechten = GebruiksrechtenFactory.create(
             informatieobject__latest_version__informatieobjecttype=INFORMATIEOBJECTTYPE
         )
+
         url = reverse(
             'gebruiksrechten-detail',
             kwargs={'uuid': gebruiksrechten.uuid}
         )
         eio_url = reverse(
-            'enkelvoudiginformatieobject-detail',
+            'enkelvoudiginformatieobjecten-detail',
             kwargs={'uuid': gebruiksrechten.informatieobject.latest_version.uuid}
         )
 

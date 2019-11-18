@@ -27,14 +27,15 @@ class StatusValidator:
         self.instance = getattr(serializer, 'instance', None)
 
     def __call__(self, attrs: dict):
-        try:
-            validate_status(
-                status=attrs.get('status'),
-                ontvangstdatum=attrs.get('ontvangstdatum'),
-                instance=self.instance
-            )
-        except ValidationError as exc:
-            raise serializers.ValidationError(exc.error_dict)
+        pass
+        # try:
+        #     validate_status(
+        #         status=attrs.get('status'),
+        #         ontvangstdatum=attrs.get('ontvangstdatum'),
+        #         instance=self.instance
+        #     )
+        # except ValidationError as exc:
+        #     raise serializers.ValidationError(exc.error_dict)
 
 
 class ObjectInformatieObjectValidator:
@@ -50,7 +51,7 @@ class ObjectInformatieObjectValidator:
         object_type = context['object_type']
 
         # informatieobject_url = get_absolute_url(
-        #     'enkelvoudiginformatieobject-detail',
+        #     'enkelvoudiginformatieobjecten-detail',
         #     uuid=informatieobject_uuid
         # )
 
@@ -87,18 +88,16 @@ class RemoteRelationValidator:
     message = _("The canonical remote relation still exists, this relation cannot be deleted.")
     code = "remote-relation-exists"
 
-    def __call__(self, object_informatie_object: ObjectInformatieObject):
+    def __call__(self, object_informatie_object):
         object_url = object_informatie_object.object
 
         informatieobject_url = get_absolute_url(
-            'enkelvoudiginformatieobject-detail',
-            uuid=object_informatie_object.informatieobject.latest_version.uuid
+            'enkelvoudiginformatieobjecten-detail',
+            uuid=object_informatie_object.informatieobject.split('/')[-1]
         )
-
         Client = import_string(settings.ZDS_CLIENT_CLASS)
         client = Client.from_url(object_url)
         client.auth = APICredential.get_auth(object_url)
-
         resource = f"{object_informatie_object.object_type}informatieobject"
 
         try:
@@ -111,7 +110,6 @@ class RemoteRelationValidator:
                 exc.args[0],
                 code='relation-lookup-error'
             ) from exc
-
         if len(relations) >= 1:
             raise serializers.ValidationError(self.message, code=self.code)
 

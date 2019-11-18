@@ -98,6 +98,8 @@ COPY ./src /app/src
 COPY ./docs /app/docs
 COPY ./bin/reset_sequences.sql ./bin/
 
+COPY ./src/vng-api-common/vng_api_common /app/src/vng_api_common
+
 ENV DJANGO_SETTINGS_MODULE=drc.conf.docker
 
 ARG SECRET_KEY=dummy

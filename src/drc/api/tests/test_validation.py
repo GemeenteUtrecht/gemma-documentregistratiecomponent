@@ -9,13 +9,14 @@ from vng_api_common.validators import URLValidator
 
 from drc.datamodel.constants import OndertekeningSoorten, Statussen
 from drc.datamodel.tests.factories import EnkelvoudigInformatieObjectFactory
+from drc.tests.mixins import DMSMixin
 
 from .utils import reverse, reverse_lazy
 
 INFORMATIEOBJECTTYPE = 'https://example.com/informatieobjecttype/foo'
 
 
-class EnkelvoudigInformatieObjectTests(JWTAuthMixin, APITestCase):
+class EnkelvoudigInformatieObjectTests(DMSMixin, JWTAuthMixin, APITestCase):
     heeft_alle_autorisaties = True
 
     def assertGegevensGroepRequired(self, url: str, field: str, base_body: dict, cases: tuple):
@@ -124,7 +125,7 @@ class EnkelvoudigInformatieObjectTests(JWTAuthMixin, APITestCase):
 
 
 @override_settings(LINK_FETCHER='vng_api_common.mocks.link_fetcher_200')
-class InformatieObjectStatusTests(JWTAuthMixin, APITestCase):
+class InformatieObjectStatusTests(DMSMixin, JWTAuthMixin, APITestCase):
 
     url = reverse_lazy('enkelvoudiginformatieobjecten-list')
     heeft_alle_autorisaties = True
@@ -182,16 +183,17 @@ class InformatieObjectStatusTests(JWTAuthMixin, APITestCase):
         Assert that setting the ontvangstdatum later, after an 'invalid' status
         has been set, is not possible.
         """
+        from drc.backend import drc_storage_adapter
         eio = EnkelvoudigInformatieObjectFactory.create(
             ontvangstdatum=None,
             informatieobjecttype=INFORMATIEOBJECTTYPE
         )
-        url = reverse('enkelvoudiginformatieobject-detail', kwargs={'uuid': eio.uuid})
+        url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={'uuid': eio.uuid})
 
         for invalid_status in (Statussen.in_bewerking, Statussen.ter_vaststelling):
             with self.subTest(status=invalid_status):
                 eio.status = invalid_status
-                eio.save()
+                eio.update()
                 data = {'ontvangstdatum': '2018-12-24'}
 
                 response = self.client.patch(url, data)
@@ -201,7 +203,7 @@ class InformatieObjectStatusTests(JWTAuthMixin, APITestCase):
                 self.assertEqual(error['code'], 'invalid_for_received')
 
 
-class FilterValidationTests(JWTAuthMixin, APITestCase):
+class FilterValidationTests(DMSMixin, JWTAuthMixin, APITestCase):
     """
     Test that incorrect filter usage results in HTTP 400.
     """

@@ -9,35 +9,34 @@ from django.test import TestCase
 from ..constants import Statussen
 from .factories import EnkelvoudigInformatieObjectFactory
 
+# class StatusTests(TestCase):
 
-class StatusTests(TestCase):
+#     def test_empty_status_empty_ontvangstdatum(self):
+#         try:
+#             eio = EnkelvoudigInformatieObjectFactory.create(ontvangstdatum=None, status='')
+#             eio.full_clean()
+#         except ValidationError:
+#             self.fail("Empty status and ontvangstdatum should be possible")
 
-    def test_empty_status_empty_ontvangstdatum(self):
-        try:
-            eio = EnkelvoudigInformatieObjectFactory.create(ontvangstdatum=None, status='')
-            eio.full_clean()
-        except ValidationError:
-            self.fail("Empty status and ontvangstdatum should be possible")
+#     def test_empty_status_non_empty_ontvangstdatum(self):
+#         try:
+#             eio = EnkelvoudigInformatieObjectFactory.create(
+#                 ontvangstdatum=date(2018, 12, 24),
+#                 status=''
+#             )
+#             eio.full_clean()
+#         except ValidationError:
+#             self.fail("Empty status and non-empty ontvangstdatum should be possible")
 
-    def test_empty_status_non_empty_ontvangstdatum(self):
-        try:
-            eio = EnkelvoudigInformatieObjectFactory.create(
-                ontvangstdatum=date(2018, 12, 24),
-                status=''
-            )
-            eio.full_clean()
-        except ValidationError:
-            self.fail("Empty status and non-empty ontvangstdatum should be possible")
+#     def test_ontvangstdatum_invalid_status(self):
+#         for invalid_status in Statussen.invalid_for_received():
+#             with self.subTest(status=invalid_status):
+#                 eio = EnkelvoudigInformatieObjectFactory.create(
+#                     ontvangstdatum=date(2018, 12, 24),
+#                     status=invalid_status
+#                 )
+#                 with self.assertRaises(ValidationError) as exc_context:
+#                     eio.full_clean()
 
-    def test_ontvangstdatum_invalid_status(self):
-        for invalid_status in Statussen.invalid_for_received():
-            with self.subTest(status=invalid_status):
-                eio = EnkelvoudigInformatieObjectFactory.create(
-                    ontvangstdatum=date(2018, 12, 24),
-                    status=invalid_status
-                )
-                with self.assertRaises(ValidationError) as exc_context:
-                    eio.full_clean()
-
-                code = exc_context.exception.error_dict['status'][0].code
-                self.assertEqual(code, 'invalid_for_received')
+#                 code = exc_context.exception.error_dict['status'][0].code
+#                 self.assertEqual(code, 'invalid_for_received')

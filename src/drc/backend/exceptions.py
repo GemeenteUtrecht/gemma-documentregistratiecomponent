@@ -8,5 +8,6 @@ class BackendException(ValidationError):
         self.retreive_single = retreive_single
         self.delete = delete
         self.retreive_list = retreive_list
+        self.code = code
 
         super().__init__(detail, code)

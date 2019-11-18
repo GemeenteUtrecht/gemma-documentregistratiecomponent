@@ -10,22 +10,25 @@ from privates.test import temp_private_root
 from rest_framework import status
 from rest_framework.test import APITestCase
 from vng_api_common.tests import (
-    JWTAuthMixin, get_operation_url, get_validation_errors, reverse
+    JWTAuthMixin, get_operation_url, get_validation_errors, reverse,
+    reverse_lazy
 )
 
+from drc.backend import drc_storage_adapter
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, EnkelvoudigInformatieObjectCanonical
 )
 from drc.datamodel.tests.factories import (
     EnkelvoudigInformatieObjectFactory, ObjectInformatieObjectFactory
 )
+from drc.tests.mixins import DMSMixin
 
 INFORMATIEOBJECTTYPE = 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1'
 
 
 @freeze_time('2018-06-27')
 @temp_private_root()
-class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
+class EnkelvoudigInformatieObjectAPITests(DMSMixin, JWTAuthMixin, APITestCase):
 
     list_url = reverse(EnkelvoudigInformatieObject)
     heeft_alle_autorisaties = True
@@ -74,7 +77,7 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
         self.assertEqual(stored_object.informatieobjecttype, INFORMATIEOBJECTTYPE)
         self.assertEqual(stored_object.vertrouwelijkheidaanduiding, 'openbaar')
 
-        expected_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        expected_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'version': '1',
             'uuid': stored_object.uuid,
         })
@@ -113,11 +116,13 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
 
     def test_read(self):
         test_object = EnkelvoudigInformatieObjectFactory.create(
-            informatieobjecttype=INFORMATIEOBJECTTYPE
+            informatieobjecttype=INFORMATIEOBJECTTYPE,
+            begin_registratie=timezone.now()
         )
+        print(test_object)
 
         # Retrieve from the API
-        detail_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        detail_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'version': '1',
             'uuid': test_object.uuid,
         })
@@ -129,7 +134,7 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
 
         file_url = get_operation_url('enkelvoudiginformatieobject_download', uuid=test_object.uuid)
         expected = {
-            'url': f'http://testserver{detail_url}',
+            'url': f'http://localhost:8000{detail_url}',
             'identificatie': test_object.identificatie,
             'bronorganisatie': test_object.bronorganisatie,
             'creatiedatum': '2018-06-27',
@@ -139,10 +144,10 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
             'formaat': 'some formaat',
             'taal': 'nld',
             'beginRegistratie': test_object.begin_registratie.isoformat().replace('+00:00', 'Z'),
-            'versie': 1,
+            'versie': '1.1',
             'bestandsnaam': '',
-            'inhoud': f'{test_object.inhoud.url}',
-            'bestandsomvang': test_object.inhoud.size,
+            'inhoud': f'{test_object.inhoud}',
+            'bestandsomvang': test_object.bestandsomvang,
             'link': '',
             'beschrijving': '',
             'ontvangstdatum': None,
@@ -177,7 +182,7 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
         )
 
         # Retrieve from the API
-        detail_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        detail_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'version': '1',
             'uuid': test_object.uuid,
         })
@@ -212,7 +217,7 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
         response = self.client.post(self.list_url, content)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        stored_object = EnkelvoudigInformatieObject.objects.get()
+        stored_object = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(page=1, page_size=1, filters=None).results[0]
         self.assertEqual(stored_object.integriteit, {
             "algoritme": "",
             "waarde": "",
@@ -247,7 +252,7 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
         response = self.client.post(self.list_url, content)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        stored_object = EnkelvoudigInformatieObject.objects.get()
+        stored_object = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(page=1, page_size=1, filters=None).results[0]
         self.assertEqual(stored_object.integriteit, {
             "algoritme": "md5",
             "waarde": "27c3a009a3cbba674d0b3e836f2d4685",
@@ -308,7 +313,7 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
 
         self.assertEqual(EnkelvoudigInformatieObject.objects.count(), 1)
         enkelvoudig_informatie = EnkelvoudigInformatieObject.objects.first()
-        object_url = reverse_lazy('enkelvoudiginformatieobject-detail', kwargs={'version': '1', 'uuid': enkelvoudig_informatie.uuid})
+        object_url = reverse_lazy('enkelvoudiginformatieobjecten-detail', kwargs={'version': '1', 'uuid': enkelvoudig_informatie.uuid})
         response = self.client.put(object_url, update_content)
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
 
@@ -337,7 +342,7 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
         self.assertEqual(EnkelvoudigInformatieObject.objects.count(), 1)
 
         enkelvoudig_informatie = EnkelvoudigInformatieObject.objects.first()
-        object_url = reverse_lazy('enkelvoudiginformatieobject-detail', kwargs={'version': '1', 'uuid': enkelvoudig_informatie.uuid})
+        object_url = reverse_lazy('enkelvoudiginformatieobjecten-detail', kwargs={'version': '1', 'uuid': enkelvoudig_informatie.uuid})
         response = self.client.get(object_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data, {
@@ -360,9 +365,8 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
         Assert that destroying is possible when there are no relations.
         """
         eio = EnkelvoudigInformatieObjectFactory.create()
-        url = reverse(eio)
 
-        response = self.client.delete(url)
+        response = self.client.delete(eio.url)
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
@@ -382,7 +386,7 @@ class EnkelvoudigInformatieObjectAPITests(JWTAuthMixin, APITestCase):
 
 
 @override_settings(LINK_FETCHER='vng_api_common.mocks.link_fetcher_200')
-class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCase):
+class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, APITestCase):
     list_url = reverse(EnkelvoudigInformatieObject)
     heeft_alle_autorisaties = True
 
@@ -392,14 +396,10 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
             informatieobjecttype=INFORMATIEOBJECTTYPE,
         )
 
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
-            'uuid': eio.uuid,
-        })
-
-        eio_response = self.client.get(eio_url)
+        eio_response = self.client.get(eio.url)
         eio_data = eio_response.data
 
-        lock = self.client.post(f'{eio_url}/lock').data['lock']
+        lock = self.client.post(f'{eio.url}/lock').data['lock']
         eio_data.update({
             'beschrijving': 'beschrijving2',
             'inhoud': b64encode(b'aaaaa'),
@@ -409,14 +409,15 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
         for i in ['integriteit', 'ondertekening']:
             eio_data.pop(i)
 
-        response = self.client.put(eio_url, eio_data)
-
+        response = self.client.put(eio.url, eio_data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
         response_data = response.json()
 
         self.assertEqual(response_data['beschrijving'], 'beschrijving2')
 
-        eios = EnkelvoudigInformatieObject.objects.filter(uuid=eio.uuid).order_by('-versie')
+        paged_results = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(page=1, page_size=100, filters=None)
+        eios = paged_results.results
         self.assertEqual(len(eios), 2)
 
         latest_version = eios.first()
@@ -430,7 +431,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
     def test_eio_partial_update(self):
         eio = EnkelvoudigInformatieObjectFactory.create(beschrijving='beschrijving1')
 
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eio_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio.uuid,
         })
         lock = self.client.post(f'{eio_url}/lock').data['lock']
@@ -458,16 +459,13 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
     def test_eio_delete(self):
         eio = EnkelvoudigInformatieObjectFactory.create(beschrijving='beschrijving1')
 
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
-            'uuid': eio.uuid,
-        })
-        lock = self.client.post(f'{eio_url}/lock').data['lock']
-        self.client.patch(eio_url, {
-            'beschrijving': 'beschrijving2',
-            'lock': lock
-        })
+        # lock = self.client.post(f'{eio.url}/lock').data['lock']
+        # self.client.patch(eio.url, {
+        #     'beschrijving': 'beschrijving2',
+        #     'lock': lock
+        # })
 
-        response = self.client.delete(eio_url)
+        response = self.client.delete(eio.url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(EnkelvoudigInformatieObjectCanonical.objects.exists())
         self.assertFalse(EnkelvoudigInformatieObject.objects.exists())
@@ -475,7 +473,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
     def test_eio_detail_retrieves_latest_version(self):
         eio = EnkelvoudigInformatieObjectFactory.create(beschrijving='beschrijving1')
 
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eio_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio.uuid,
         })
         lock = self.client.post(f'{eio_url}/lock').data['lock']
@@ -483,6 +481,8 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
             'beschrijving': 'beschrijving2',
             'lock': lock
         })
+
+        drc_storage_adapter.unlock_enkelvoudiginformatieobject(eio.uuid, lock)
 
         response = self.client.get(eio_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -491,7 +491,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
     def test_eio_list_shows_latest_versions(self):
         eio1 = EnkelvoudigInformatieObjectFactory.create(beschrijving='object1')
 
-        eio1_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eio1_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio1.uuid,
         })
         lock = self.client.post(f'{eio1_url}/lock').data['lock']
@@ -502,7 +502,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
 
         eio2 = EnkelvoudigInformatieObjectFactory.create(beschrijving='object2')
 
-        eio2_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eio2_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio2.uuid,
         })
         lock = self.client.post(f'{eio2_url}/lock').data['lock']
@@ -523,7 +523,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
     def test_eio_detail_filter_by_version(self):
         eio = EnkelvoudigInformatieObjectFactory.create(beschrijving='beschrijving1')
 
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eio_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio.uuid,
         })
         lock = self.client.post(f'{eio_url}/lock').data['lock']
@@ -532,30 +532,26 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
             'lock': lock
         })
 
-        response = self.client.get(eio_url, {'versie': 1})
+        response = self.client.get(eio_url, {'versie': 1.0})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['beschrijving'], 'beschrijving1')
 
     def test_eio_detail_filter_by_wrong_version_gives_404(self):
         eio = EnkelvoudigInformatieObjectFactory.create(beschrijving='beschrijving1')
-
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
-            'uuid': eio.uuid,
-        })
-        lock = self.client.post(f'{eio_url}/lock').data['lock']
-        self.client.patch(eio_url, {
+        lock = self.client.post(f'{eio.url}/lock').data['lock']
+        self.client.patch(eio.url, {
             'beschrijving': 'beschrijving2',
             'lock': lock
         })
 
-        response = self.client.get(eio_url, {'versie': 100})
+        response = self.client.get(eio.url, {'versie': 100})
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_eio_detail_filter_by_registratie_op(self):
         with freeze_time('2019-01-01 12:00:00'):
             eio = EnkelvoudigInformatieObjectFactory.create(beschrijving='beschrijving1')
 
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eio_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio.uuid,
         })
         lock = self.client.post(f'{eio_url}/lock').data['lock']
@@ -573,17 +569,13 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
     def test_eio_detail_filter_by_wrong_registratie_op_gives_404(self):
         eio = EnkelvoudigInformatieObjectFactory.create(beschrijving='beschrijving1')
 
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
-            'uuid': eio.uuid,
-        })
-        lock = self.client.post(f'{eio_url}/lock').data['lock']
-        self.client.patch(eio_url, {
+        lock = self.client.post(f'{eio.url}/lock').data['lock']
+        self.client.patch(eio.url, {
             'beschrijving': 'beschrijving2',
             'lock': lock
         })
-
-        response = self.client.get(eio_url, {'registratieOp': '2019-01-01T11:59:00'})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        response = self.client.get(eio.url, {'registratieOp': '2019-01-01T11:59:00'})
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND, msg=response.data)
 
     def test_eio_download_content_filter_by_version(self):
         eio = EnkelvoudigInformatieObjectFactory.create(
@@ -591,19 +583,17 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
             inhoud__data=b'inhoud1'
         )
 
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
-            'uuid': eio.uuid,
-        })
-        lock = self.client.post(f'{eio_url}/lock').data['lock']
-        self.client.patch(eio_url, {
+        lock = self.client.post(f'{eio.url}/lock').data['lock']
+        self.client.patch(eio.url, {
             'inhoud': b64encode(b'inhoud2'),
             'beschrijving': 'beschrijving2',
             'lock': lock
         })
 
-        response = self.client.get(eio_url, {'versie': '1'})
-
+        response = self.client.get(eio.url, {'versie': '1.0'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         response = self.client.get(response.data['inhoud'])
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response._container[0], b'inhoud1')
 
     def test_eio_download_content_filter_by_registratie(self):
@@ -613,7 +603,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
                 inhoud__data=b'inhoud1'
             )
 
-        eio_url = reverse('enkelvoudiginformatieobject-detail', kwargs={
+        eio_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio.uuid,
         })
         lock = self.client.post(f'{eio_url}/lock').data['lock']
@@ -631,7 +621,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(JWTAuthMixin, APITestCas
 
 
 @override_settings(LINK_FETCHER='vng_api_common.mocks.link_fetcher_200')
-class EnkelvoudigInformatieObjectPaginationAPITests(JWTAuthMixin, APITestCase):
+class EnkelvoudigInformatieObjectPaginationAPITests(DMSMixin, JWTAuthMixin, APITestCase):
     list_url = reverse(EnkelvoudigInformatieObject)
     heeft_alle_autorisaties = True
 

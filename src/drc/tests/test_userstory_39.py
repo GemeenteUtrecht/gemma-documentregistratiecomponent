@@ -5,6 +5,7 @@ import base64
 from datetime import date
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.test import override_settings
 
 from privates.test import temp_private_root
@@ -16,17 +17,17 @@ from vng_api_common.tests import JWTAuthMixin, get_operation_url
 from drc.api.scopes import (
     SCOPE_DOCUMENTEN_AANMAKEN, SCOPE_DOCUMENTEN_ALLES_LEZEN
 )
+from drc.backend import drc_storage_adapter
 from drc.datamodel.models import EnkelvoudigInformatieObject
-from drc.datamodel.tests.factories import (
-    EnkelvoudigInformatieObjectCanonicalFactory,
-    EnkelvoudigInformatieObjectFactory
-)
+from drc.datamodel.tests.factories import EnkelvoudigInformatieObjectFactory
+
+from .mixins import DMSMixin
 
 INFORMATIEOBJECTTYPE = 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1'
 
 
 @temp_private_root()
-class US39TestCase(JWTAuthMixin, APITestCase):
+class US39TestCase(DMSMixin, JWTAuthMixin, APITestCase):
 
     scopes = [SCOPE_DOCUMENTEN_AANMAKEN]
     informatieobjecttype = INFORMATIEOBJECTTYPE
@@ -51,20 +52,15 @@ class US39TestCase(JWTAuthMixin, APITestCase):
         }
 
         response = self.client.post(url, data)
-
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        eio_dict = response.json()
 
-        eio = EnkelvoudigInformatieObject.objects.get()
+        eio = drc_storage_adapter.lees_enkelvoudiginformatieobject(eio_dict.get('url').split('/')[-1])
 
         self.assertEqual(eio.identificatie, 'AMS20180701001')
         self.assertEqual(eio.creatiedatum, date(2018, 7, 1))
 
-        # should be a URL
-        if not settings.CMIS_BACKEND_ENABLED:
-            download_url = urlparse(response.data['inhoud'])
-            self.assertTrue(download_url.path.startswith(settings.MEDIA_URL))
-            self.assertTrue(download_url.path.endswith('.bin'))
-
+        download_url = urlparse(response.data['inhoud'])
         self.assertTrue(
             download_url.path,
             get_operation_url('enkelvoudiginformatieobject_download', uuid=eio.uuid)
@@ -74,9 +70,8 @@ class US39TestCase(JWTAuthMixin, APITestCase):
         self.autorisatie.scopes = [SCOPE_DOCUMENTEN_ALLES_LEZEN]
         self.autorisatie.save()
 
-        eio = EnkelvoudigInformatieObjectFactory.create(informatieobjecttype=INFORMATIEOBJECTTYPE)
+        eio = EnkelvoudigInformatieObjectFactory.create(informatieobjecttype=INFORMATIEOBJECTTYPE, inhoud__data=b'some data')
         file_url = get_operation_url('enkelvoudiginformatieobject_download', uuid=eio.uuid)
-
         response = self.client.get(file_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -86,11 +81,9 @@ class US39TestCase(JWTAuthMixin, APITestCase):
         self.autorisatie.scopes = [SCOPE_DOCUMENTEN_ALLES_LEZEN]
         self.autorisatie.save()
 
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create(
-            latest_version__informatieobjecttype=INFORMATIEOBJECTTYPE
-        )
+        eio = EnkelvoudigInformatieObjectFactory()
         list_url = get_operation_url('enkelvoudiginformatieobject_list')
-
+        res = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(page=1, page_size=10, filters=None)
         response = self.client.get(list_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -100,5 +93,5 @@ class US39TestCase(JWTAuthMixin, APITestCase):
 
         self.assertEqual(
             download_url.path,
-            get_operation_url('enkelvoudiginformatieobject_download', uuid=eio.latest_version.uuid)
+            get_operation_url('enkelvoudiginformatieobject_download', uuid=eio.uuid)
         )

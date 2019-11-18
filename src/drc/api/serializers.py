@@ -238,7 +238,7 @@ class BaseEnkelvoudigInformatieObjectSerializer(serializers.Serializer):
 
 class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSerializer):
     inhoud = AnyBase64File(
-        view_name='enkelvoudiginformatieobject-download',
+        view_name='enkelvoudiginformatieobjecten-download',
         help_text=_(f"Minimal accepted size of uploaded file = {settings.MIN_UPLOAD_SIZE} bytes "
                     f"(or {naturalsize(settings.MIN_UPLOAD_SIZE, binary=True)})")
     )
@@ -249,11 +249,11 @@ class EnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSeria
         """
         return drc_storage_adapter.creeer_enkelvoudiginformatieobject(self.validated_data.copy())
 
-    def update(self, identificatie):
+    def update(self, identificatie, lock):
         """
         Handle the update calls.
         """
-        return drc_storage_adapter.update_enkenvoudiginformatieobject(identificatie, self.validated_data.copy())
+        return drc_storage_adapter.update_enkenvoudiginformatieobject(identificatie, lock, self.validated_data.copy())
 
 
 class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObjectSerializer):
@@ -270,6 +270,10 @@ class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObj
             "Geeft aan of het document gelocked is. Alleen als een document gelocked is, "
             "mogen er aanpassingen gemaakt worden."
         )
+    )
+    versie = serializers.CharField(allow_blank=True)
+    beginRegistratie = serializers.DateTimeField(
+        allow_null=True
     )
 
     def create(self):
@@ -446,7 +450,7 @@ class ObjectInformatieObjectSerializer(serializers.Serializer):
 
 class GebruiksrechtenSerializer(serializers.HyperlinkedModelSerializer):
     # informatieobject = EnkelvoudigInformatieObjectHyperlinkedRelatedField(
-    #     view_name='enkelvoudiginformatieobject-detail',
+    #     view_name='enkelvoudiginformatieobjecten-detail',
     #     lookup_field='uuid',
     #     queryset=EnkelvoudigInformatieObject.objects,
     #     help_text=get_help_text('datamodel.Gebruiksrechten', 'informatieobject'),

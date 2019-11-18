@@ -12,6 +12,7 @@ from vng_api_common.constants import ObjectTypes
 from vng_api_common.tests import JWTAuthMixin, reverse, reverse_lazy
 from vng_api_common.utils import get_uuid_from_path
 
+from drc.backend import drc_storage_adapter
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, EnkelvoudigInformatieObjectCanonical,
     Gebruiksrechten, ObjectInformatieObject
@@ -49,7 +50,7 @@ class AuditTrailTests(JWTAuthMixin, APITestCase):
         }
 
         response = self.client.post(self.informatieobject_list_url, content, **HEADERS)
-
+        self.assertEqual(response.status_code, 201, msg=response.data)
         return response.data
 
     def test_create_enkelvoudiginformatieobject_audittrail(self):
@@ -73,7 +74,7 @@ class AuditTrailTests(JWTAuthMixin, APITestCase):
         informatieobject = EnkelvoudigInformatieObjectFactory.create()
 
         content = {
-            'informatieobject': reverse('enkelvoudiginformatieobject-detail', kwargs={'uuid': informatieobject.uuid}),
+            'informatieobject': reverse('enkelvoudiginformatieobjecten-detail', kwargs={'uuid': informatieobject.uuid}),
             'object': ZAAK,
             'objectType': ObjectTypes.zaak,
         }
@@ -96,15 +97,13 @@ class AuditTrailTests(JWTAuthMixin, APITestCase):
 
     def test_create_and_delete_gebruiksrechten_audittrail(self):
         informatieobject = EnkelvoudigInformatieObjectFactory.create()
-
         content = {
-            'informatieobject': reverse('enkelvoudiginformatieobject-detail', kwargs={'uuid': informatieobject.uuid}),
+            'informatieobject': f"http://testserver{reverse('enkelvoudiginformatieobjecten-detail', kwargs={'uuid': informatieobject.uuid})}",
             'startdatum': datetime.now(),
             'omschrijvingVoorwaarden': 'test'
         }
 
         gebruiksrechten_response = self.client.post(self.gebruiksrechten_list_url, content).data
-
         informatieobject_url = gebruiksrechten_response['informatieobject']
         audittrails = AuditTrail.objects.filter(hoofd_object=informatieobject_url)
         self.assertEqual(audittrails.count(), 1)
@@ -138,9 +137,7 @@ class AuditTrailTests(JWTAuthMixin, APITestCase):
         informatieobject_url = informatieobject_data['url']
 
         # lock for update
-        eio = EnkelvoudigInformatieObjectCanonical.objects.get()
-        eio.lock = '0f60f6d2d2714c809ed762372f5a363a'
-        eio.save()
+        lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(informatieobject_url.split('/')[-1])
 
         content = {
             'identificatie': uuid.uuid4().hex,
@@ -156,7 +153,7 @@ class AuditTrailTests(JWTAuthMixin, APITestCase):
             'beschrijving': 'test_beschrijving',
             'informatieobjecttype': 'https://example.com/ztc/api/v1/catalogus/1/informatieobjecttype/1',
             'vertrouwelijkheidaanduiding': 'openbaar',
-            'lock': '0f60f6d2d2714c809ed762372f5a363a'
+            'lock': lock
         }
 
         informatieobject_response = self.client.put(informatieobject_url, content).data
@@ -176,22 +173,21 @@ class AuditTrailTests(JWTAuthMixin, APITestCase):
         # locked will be True in the version before changes as shown
         # in the audittrail
         informatieobject_data['locked'] = True
-        self.assertEqual(informatieobject_update_audittrail.oud, informatieobject_data)
-        self.assertEqual(informatieobject_update_audittrail.nieuw, informatieobject_response)
+
+        self.assertDictEqual(informatieobject_update_audittrail.oud, informatieobject_data)
+        self.assertDictEqual(informatieobject_update_audittrail.nieuw, informatieobject_response)
 
     def test_partial_update_enkelvoudiginformatieobject_audittrail(self):
         informatieobject_data = self._create_enkelvoudiginformatieobject()
         informatieobject_url = informatieobject_data['url']
 
         # lock for update
-        eio = EnkelvoudigInformatieObjectCanonical.objects.get()
-        eio.lock = '0f60f6d2d2714c809ed762372f5a363a'
-        eio.save()
+        lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(informatieobject_url.split('/')[-1])
 
         informatieobject_response = self.client.patch(
             informatieobject_url,
             {'titel': 'changed',
-             'lock': '0f60f6d2d2714c809ed762372f5a363a'}
+             'lock': lock}
         ).data
 
         audittrails = AuditTrail.objects.filter(hoofd_object=informatieobject_url)
@@ -249,9 +245,8 @@ class AuditTrailTests(JWTAuthMixin, APITestCase):
         self.assertEqual(audittrail.toelichting, toelichting)
 
     def test_read_audittrail(self):
-        self._create_enkelvoudiginformatieobject()
+        eio = self._create_enkelvoudiginformatieobject()
 
-        eio = EnkelvoudigInformatieObject.objects.get()
         audittrails = AuditTrail.objects.get()
         audittrails_url = reverse(audittrails, kwargs={'enkelvoudiginformatieobject_uuid': eio.uuid})
 
@@ -263,7 +258,7 @@ class AuditTrailTests(JWTAuthMixin, APITestCase):
         eio_response = self._create_enkelvoudiginformatieobject()
 
         eio_uuid = get_uuid_from_path(eio_response['url'])
-        eio_unique_representation = EnkelvoudigInformatieObject.objects.get(uuid=eio_uuid).unique_representation()
+        eio_unique_representation = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid=eio_uuid).unique_representation()
 
         audittrail = AuditTrail.objects.filter(hoofd_object=eio_response['url']).get()
 

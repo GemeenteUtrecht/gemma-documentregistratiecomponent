@@ -10,10 +10,12 @@ from vng_api_common.constants import ObjectTypes
 from vng_api_common.tests import JWTAuthMixin, get_validation_errors, reverse
 from zds_client.tests.mocks import mock_client
 
+from drc.backend import drc_storage_adapter
 from drc.datamodel.models import ObjectInformatieObject
 from drc.datamodel.tests.factories import (
     EnkelvoudigInformatieObjectFactory, ObjectInformatieObjectFactory
 )
+from drc.tests.mixins import DMSMixin
 
 ZAAK = 'https://zrc.nl/api/v1/zaken/1234'
 BESLUIT = 'https://brc.nl/api/v1/besluiten/4321'
@@ -24,58 +26,52 @@ BESLUIT = 'https://brc.nl/api/v1/besluiten/4321'
     ZDS_CLIENT_CLASS='vng_api_common.mocks.MockClient',
     ALLOWD_HOSTS=["testserver.nl"]
 )
-class ObjectInformatieObjectTests(JWTAuthMixin, APITestCase):
+class ObjectInformatieObjectTests(DMSMixin, JWTAuthMixin, APITestCase):
     heeft_alle_autorisaties = True
 
     list_url = reverse(ObjectInformatieObject)
 
     def test_create_with_objecttype_zaak(self):
         eio = EnkelvoudigInformatieObjectFactory.create()
-        eio_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
-            'uuid': eio.uuid
-        })
 
-        response = self.client.post(self.list_url, {
+        data = {
             'object': ZAAK,
-            'informatieobject': f'http://testserver{eio_url}',
+            'informatieobject': eio.url,
             'objectType': 'zaak'
-        })
+        }
+        response = self.client.post(self.list_url, data)
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, msg=response.json())
 
-        zio = eio.canonical.objectinformatieobject_set.get()
-        self.assertEqual(zio.object, ZAAK)
+        oio = response.json()
+        self.assertEqual(oio.get("object"), ZAAK)
 
     def test_create_with_objecttype_besluit(self):
         eio = EnkelvoudigInformatieObjectFactory.create()
-        eio_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
-            'uuid': eio.uuid
-        })
 
         response = self.client.post(self.list_url, {
             'object': BESLUIT,
-            'informatieobject': f'http://testserver{eio_url}',
+            'informatieobject': eio.url,
             'objectType': 'besluit'
         })
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, msg=response.json())
 
-        bio = eio.canonical.objectinformatieobject_set.get()
-        self.assertEqual(bio.object, BESLUIT)
+        oio = response.json()
+        self.assertEqual(oio.get("object"), BESLUIT)
 
     def test_duplicate_object(self):
         """
         Test the (informatieobject, object) unique together validation.
         """
-        oio = ObjectInformatieObjectFactory.create(
-            is_zaak=True,
-        )
-        enkelvoudig_informatie_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
-            'uuid': oio.informatieobject.latest_version.uuid
+        eio = EnkelvoudigInformatieObjectFactory()
+        oio = drc_storage_adapter.creeer_objectinformatieobject({
+            'uuid': uuid.uuid4(),
+            'informatieobject': eio.url, 'object': 'https://zrc.nl/api/v1/zaken/2', 'object_type': 'zaak'
         })
 
         content = {
-            'informatieobject': f'http://testserver{enkelvoudig_informatie_url}',
+            'informatieobject': eio.url,
             'object': oio.object,
             'objectType': ObjectTypes.zaak,
         }
@@ -88,25 +84,23 @@ class ObjectInformatieObjectTests(JWTAuthMixin, APITestCase):
         self.assertEqual(error['code'], 'unique')
 
     def test_filter(self):
-        oio = ObjectInformatieObjectFactory.create(
-            is_zaak=True,
-        )
-        eo_detail_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
-            'uuid': oio.informatieobject.latest_version.uuid
+        eio = EnkelvoudigInformatieObjectFactory()
+        drc_storage_adapter.creeer_objectinformatieobject({
+            'uuid': uuid.uuid4(),
+            'informatieobject': eio.url, 'object': 'https://zrc.nl/api/v1/zaken/2', 'object_type': 'zaak'
         })
 
         response = self.client.get(self.list_url, {
-            'informatieobject': f'http://testserver{eo_detail_url}',
+            'informatieobject': eio.url,
         })
-
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, msg=response.json())
         self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['informatieobject'], f'http://testserver{eo_detail_url}')
+        self.assertEqual(response.data[0]['informatieobject'], eio.url)
 
 
 @patch('zds_client.client.get_operation_url')
 @patch('zds_client.tests.mocks.MockClient.fetch_schema', return_value={})
-class ObjectInformatieObjectDestroyTests(JWTAuthMixin, APITestCase):
+class ObjectInformatieObjectDestroyTests(DMSMixin, JWTAuthMixin, APITestCase):
     heeft_alle_autorisaties = True
 
     RESPONSES = {
@@ -121,23 +115,29 @@ class ObjectInformatieObjectDestroyTests(JWTAuthMixin, APITestCase):
 
     def test_destroy_oio_remote_gone(self, mock_fetch_schema, mock_get_operation_url):
         mock_get_operation_url.return_value = '/api/v1/zaakinformatieobjecten'
-        oio = ObjectInformatieObjectFactory.create(is_zaak=True, object=ZAAK)
-        url = reverse(oio)
+        eio = EnkelvoudigInformatieObjectFactory()
+        oio = drc_storage_adapter.creeer_objectinformatieobject({
+            'uuid': uuid.uuid4(),
+            'informatieobject': eio.url, 'object': 'https://zrc.nl/api/v1/zaak/2', 'object_type': 'zaak'
+        })
 
         with mock_client(responses=self.RESPONSES):
-            response = self.client.delete(url)
+            response = self.client.delete(oio.url)
 
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(ObjectInformatieObject.objects.exists())
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT, msg=response.data)
+        self.assertFalse(drc_storage_adapter.lees_objectinformatieobjecten())
 
     def test_destroy_oio_remote_still_present(self, mock_fetch_schema, mock_get_operation_url):
         mock_get_operation_url.return_value = '/api/v1/besluitinformatieobjecten'
-        oio = ObjectInformatieObjectFactory.create(is_besluit=True, object=BESLUIT)
-        url = reverse(oio)
+        eio = EnkelvoudigInformatieObjectFactory()
+        oio = drc_storage_adapter.creeer_objectinformatieobject({
+            'uuid': uuid.uuid4(),
+            'informatieobject': eio.url, 'object': 'https://brc.nl/api/v1/besluiten/2', 'object_type': 'besluit'
+        })
 
         with mock_client(responses=self.RESPONSES):
-            response = self.client.delete(url)
+            response = self.client.delete(oio.url)
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, msg=response.data)
         error = get_validation_errors(response, "nonFieldErrors")
         self.assertEqual(error["code"], "remote-relation-exists")

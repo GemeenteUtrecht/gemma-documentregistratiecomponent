@@ -305,7 +305,7 @@ LOGGING = {
             'propagate': False,
         },
         'drc_cmis': {
-            'handlers': ['drc_cmis', 'console'],
+            'handlers': ['drc_cmis'],
             'level': 'DEBUG',
             'propagate': False,
         },

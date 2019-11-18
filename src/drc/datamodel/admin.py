@@ -26,7 +26,7 @@ def unlock(modeladmin, request, queryset):
 class EnkelvoudigInformatieObjectCanonicalAdmin(PrivateMediaMixin, admin.ModelAdmin):
     list_display = ['__str__', 'get_not_lock_display']
     list_display = ['__str__']
-    inlines = [EnkelvoudigInformatieObjectInline, GebruiksrechtenInline]
+    inlines = [EnkelvoudigInformatieObjectInline]
     private_media_fields = ('inhoud',)
     actions = [unlock]
 
@@ -56,4 +56,3 @@ class ObjectInformatieObjectAdmin(admin.ModelAdmin):
 class GebruiksrechtenAdmin(admin.ModelAdmin):
     list_display = ("uuid", "informatieobject")
     list_filter = ("informatieobject",)
-    raw_id_fields = ("informatieobject",)

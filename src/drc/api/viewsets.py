@@ -2,7 +2,7 @@ import logging
 
 from django.conf import settings
 from django.db import transaction
-from django.http import Http404, StreamingHttpResponse
+from django.http import Http404, HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_list_or_404, get_object_or_404
 from django.utils import dateparse, timezone
 from django.utils.translation import ugettext_lazy as _
@@ -28,7 +28,7 @@ from vng_api_common.notifications.viewsets import (
 from vng_api_common.serializers import FoutSerializer
 from vng_api_common.viewsets import CheckQueryParamsMixin
 
-from drc.backend import drc_storage_adapter
+from drc.backend import BackendException, drc_storage_adapter
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, EnkelvoudigInformatieObjectCanonical,
     Gebruiksrechten, ObjectInformatieObject
@@ -78,6 +78,12 @@ REGISTRATIE_QUERY_PARAM = openapi.Parameter(
                 'kortst hiervoor zit wordt opgehaald.',
     type=openapi.TYPE_STRING
 )
+
+
+def raise_validation_error(message, code):
+    raise serializers.ValidationError(detail=serializers.as_serializer_error(serializers.ValidationError(
+        message, code=code
+    )))
 
 
 class SerializerClassMixin:
@@ -230,7 +236,7 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
     audit = AUDIT_DRC
 
     def get_object(self, **kwargs):
-        document_data = drc_storage_adapter.lees_enkelvoudiginformatieobject(kwargs.get('uuid'))
+        document_data = drc_storage_adapter.lees_enkelvoudiginformatieobject(kwargs.get('uuid'), kwargs.get('versie'))
         return document_data
 
     def list(self, request, version=None):
@@ -247,7 +253,18 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         return Response(serializer.data)
 
     def retrieve(self, request, uuid=None, version=None):
-        serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=self.get_object(uuid=uuid))
+        data = self.request.GET.copy()
+        filters = EnkelvoudigInformatieObjectDetailFilter(data=data)
+        if not filters.is_valid():
+            return Response(filters.errors, status=400)
+        print('get_filters', filters.get_filters())
+        try:
+            document = drc_storage_adapter.lees_enkelvoudiginformatieobject(
+                uuid=uuid, versie=request.GET.get('versie'), filters=filters.form.cleaned_data
+            )
+        except BackendException:
+            raise Http404
+        serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=document)
         return Response(serializer.data)
 
     def create(self, request, version=None):
@@ -271,40 +288,58 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
     def update(self, request, uuid=None, version=None):
         before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.update(uuid)
-
-        return_serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=data)
-        headers = self.get_success_headers(return_serializer.data)
-        response = Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
-        self.notify(response.status_code, data)
-        self.create_audittrail(
-            response.status_code,
-            CommonResourceAction.update,
-            version_before_edit=before,
-            version_after_edit=data,
-            unique_representation=data.unique_representation()
-        )
-        return response
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            logger.exception(e)
+            raise e
+        try:
+            data = serializer.update(uuid, lock=request.data.get('lock'))
+        except BackendException as e:
+            if e.code == 'not-locked':
+                raise_validation_error(_("Unlocked document can't be modified"), code='unlocked')
+            elif e.code == 'wrong-lock':
+                raise_validation_error(_("Lock id is not correct"), code='incorrect-lock-id')
+            raise e
+        else:
+            return_serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=data)
+            headers = self.get_success_headers(return_serializer.data)
+            response = Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
+            self.notify(response.status_code, data)
+            self.create_audittrail(
+                response.status_code,
+                CommonResourceAction.update,
+                version_before_edit=before,
+                version_after_edit=data,
+                unique_representation=data.unique_representation()
+            )
+            return response
 
     def partial_update(self, request, uuid=None, version=None):
         before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
         serializer = self.get_serializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        data = serializer.update(uuid)
-
-        return_serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=data)
-        headers = self.get_success_headers(return_serializer.data)
-        response = Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
-        self.notify(response.status_code, data)
-        self.create_audittrail(
-            response.status_code,
-            CommonResourceAction.partial_update,
-            version_before_edit=before,
-            version_after_edit=data,
-            unique_representation=data.unique_representation()
-        )
-        return response
+        try:
+            data = serializer.update(uuid, lock=request.data.get('lock'))
+        except BackendException as e:
+            if e.code == 'not-locked':
+                raise_validation_error(_("Unlocked document can't be modified"), code='unlocked')
+            elif e.code == 'wrong-lock':
+                raise_validation_error(_("Lock id is not correct"), code='incorrect-lock-id')
+            raise e
+        else:
+            return_serializer = RetrieveEnkelvoudigInformatieObjectSerializer(instance=data)
+            headers = self.get_success_headers(return_serializer.data)
+            response = Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
+            self.notify(response.status_code, data)
+            self.create_audittrail(
+                response.status_code,
+                CommonResourceAction.partial_update,
+                version_before_edit=before,
+                version_after_edit=data,
+                unique_representation=data.unique_representation()
+            )
+            return response
 
     def destroy(self, request, uuid=None, version=None):
         before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
@@ -350,7 +385,7 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         content, filename = drc_storage_adapter.lees_enkelvoudiginformatieobject_inhoud(kwargs.get('uuid'))
         content_type = "application/octet-stream"
 
-        response = StreamingHttpResponse(streaming_content=content, content_type=content_type)
+        response = HttpResponse(content=content, content_type=content_type)
         response["Content-Disposition"] = f"attachment; filename={filename}.bin"
         return response
 
@@ -371,8 +406,11 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
     )
     @action(detail=True, methods=['post'])
     def lock(self, request, *args, **kwargs):
-        checkout_id = drc_storage_adapter.lock_enkelvoudiginformatieobject(kwargs.get('uuid'))
-        return Response({'lock': checkout_id})
+        try:
+            checkout_id = drc_storage_adapter.lock_enkelvoudiginformatieobject(kwargs.get('uuid'))
+            return Response({'lock': checkout_id})
+        except BackendException:
+            raise_validation_error(_("The document is already locked"), code='existing-lock')
 
     @swagger_auto_schema(
         request_body=UnlockEnkelvoudigInformatieObjectSerializer,
@@ -391,9 +429,17 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
     )
     @action(detail=True, methods=['post'])
     def unlock(self, request, *args, **kwargs):
+        force_unlock = False
+        if self.request.jwt_auth.has_auth(
+            scopes=SCOPE_DOCUMENTEN_GEFORCEERD_UNLOCK,
+        ):
+            force_unlock = True
 
-        response = drc_storage_adapter.unlock_enkelvoudiginformatieobject(kwargs.get('uuid'))
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            drc_storage_adapter.unlock_enkelvoudiginformatieobject(uuid=kwargs.get('uuid'), lock=request.data.get('lock'), force=force_unlock)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except BackendException:
+            raise_validation_error(_("Lock id is not correct"), code='incorrect-lock-id')
 
     def get_success_headers(self, data):
         try:
@@ -447,7 +493,7 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
     endpoint bij het synchroniseren van relaties.
     """
     serializer_class = ObjectInformatieObjectSerializer
-    filterset_class = ObjectInformatieObjectFilter # TODO
+    filterset_class = ObjectInformatieObjectFilter
     lookup_field = 'uuid'
 
     notifications_kanaal = KANAAL_DOCUMENTEN
@@ -468,17 +514,16 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
     model = ObjectInformatieObject
 
     def get_object(self, **kwargs):
-        document_data = drc_storage_adapter.lees_objectinformatieobject(kwargs.get('uuid'), via_uuid=True)
+        document_data = drc_storage_adapter.lees_objectinformatieobject(kwargs.get('uuid'))
         return document_data
 
     def list(self, request, version=None):
-        documents_data = drc_storage_adapter.lees_objectinformatieobjecten()
+        filters = self.filterset_class(data=self.request.GET)
+        if not filters.is_valid():
+            return Response(filters.errors, status=400)
+        documents_data = drc_storage_adapter.lees_objectinformatieobjecten(filters=filters.form.cleaned_data)
         serializer = ObjectInformatieObjectSerializer(instance=documents_data, many=True)
         return Response(serializer.data)
-
-    def perform_destroy(self, instance):
-        # destroy is only allowed if the remote relation does no longer exist, so check for that
-        validator = RemoteRelationValidator()
 
     def retrieve(self, request, uuid=None, version=None):
         document_data = drc_storage_adapter.lees_objectinformatieobject(uuid)
@@ -488,7 +533,10 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
     def create(self, request, version=None):
         serializer = ObjectInformatieObjectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        oio = serializer.create()
+        try:
+            oio = serializer.create()
+        except BackendException:
+            raise_validation_error(_("connection is not unique"), code="unique")
 
         headers = self.get_success_headers(serializer.data)
         response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -522,25 +570,28 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
         return response
 
     def destroy(self, request, uuid=None, version=None):
-        oio = drc_storage_adapter.verwijder_objectinformatieobject(uuid)
-        response = Response({}, status=status.HTTP_204_NO_CONTENT)
-        self.notify(response.status_code, oio)
-        return response
-
-    def get_success_headers(self, data):
-        try:
-            return {'Location': str(data[api_settings.URL_FIELD_NAME])}
-        except (TypeError, KeyError):
-            return {}
-
+        instance = drc_storage_adapter.lees_objectinformatieobject(uuid)
+        validator = RemoteRelationValidator()
         try:
             validator(instance)
         except serializers.ValidationError as exc:
             raise serializers.ValidationError({
                 api_settings.NON_FIELD_ERRORS_KEY: exc
             }, code=exc.detail[0].code)
+        except Exception as e:
+            logger.exception(e)
+            raise e
         else:
-            super().perform_destroy(instance)
+            oio = drc_storage_adapter.verwijder_objectinformatieobject(uuid)
+            response = Response({}, status=status.HTTP_204_NO_CONTENT)
+            self.notify(response.status_code, oio)
+            return response
+
+    def get_success_headers(self, data):
+        try:
+            return {'Location': str(data[api_settings.URL_FIELD_NAME])}
+        except (TypeError, KeyError):
+            return {}
 
 
 class GebruiksrechtenViewSet(NotificationViewSetMixin,

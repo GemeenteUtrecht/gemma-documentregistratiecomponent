@@ -13,22 +13,22 @@ from vng_api_common.tests import (
 from drc.api.scopes import (
     SCOPE_DOCUMENTEN_GEFORCEERD_UNLOCK, SCOPE_DOCUMENTEN_LOCK
 )
-from drc.datamodel.tests.factories import (
-    EnkelvoudigInformatieObjectCanonicalFactory
-)
+from drc.backend import drc_storage_adapter
+from drc.datamodel.tests.factories import EnkelvoudigInformatieObjectFactory
+from drc.tests.mixins import DMSMixin
 
 INFORMATIEOBJECTTYPE = 'https://example.com/informatieobjecttype/foo'
 
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp(),
                    LINK_FETCHER='vng_api_common.mocks.link_fetcher_200')
-class EioLockAPITests(JWTAuthMixin, APITestCase):
+class EioLockAPITests(DMSMixin, JWTAuthMixin, APITestCase):
 
     heeft_alle_autorisaties = True
 
     def test_lock_success(self):
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create()
-        assert eio.lock == ''
+        eio = EnkelvoudigInformatieObjectFactory.create()
+        assert not eio.locked, "Document should not be locked"
         url = get_operation_url('enkelvoudiginformatieobject_lock', uuid=eio.latest_version.uuid)
 
         response = self.client.post(url)
@@ -36,15 +36,14 @@ class EioLockAPITests(JWTAuthMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
 
         data = response.json()
-        eio.refresh_from_db()
-
-        self.assertEqual(data['lock'], eio.lock)
-        self.assertNotEqual(data['lock'], '')
+        eio = drc_storage_adapter.lees_enkelvoudiginformatieobject(eio.uuid)
+        self.assertTrue(eio.locked)
 
     def test_lock_fail_locked_doc(self):
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create(lock=uuid.uuid4().hex)
+        eio = EnkelvoudigInformatieObjectFactory.create()
+        lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(eio.uuid)
 
-        url = get_operation_url('enkelvoudiginformatieobject_lock', uuid=eio.latest_version.uuid)
+        url = get_operation_url('enkelvoudiginformatieobject_lock', uuid=eio.uuid)
         response = self.client.post(url)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, response.data)
@@ -53,29 +52,26 @@ class EioLockAPITests(JWTAuthMixin, APITestCase):
         self.assertEqual(error['code'], 'existing-lock')
 
     def test_update_success(self):
-        lock = uuid.uuid4().hex
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create(lock=lock)
-        url = get_operation_url('enkelvoudiginformatieobject_update', uuid=eio.latest_version.uuid)
+        eio = EnkelvoudigInformatieObjectFactory.create()
+        lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(eio.uuid)
 
         response = self.client.patch(
-            url,
+            eio.url,
             {'titel': 'changed',
              'lock': lock}
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
 
-        eio.refresh_from_db()
-
-        self.assertEqual(eio.latest_version.titel, 'changed')
+        drc_storage_adapter.unlock_enkelvoudiginformatieobject(eio.uuid, lock)
+        eio = drc_storage_adapter.lees_enkelvoudiginformatieobject(eio.uuid)
+        self.assertEqual(eio.titel, 'changed')
 
     def test_update_fail_unlocked_doc(self):
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create()
-        assert eio.lock == ''
+        eio = EnkelvoudigInformatieObjectFactory.create()
+        self.assertFalse(eio.locked)
 
-        url = get_operation_url('enkelvoudiginformatieobject_update', uuid=eio.latest_version.uuid)
-
-        response = self.client.patch(url, {'titel': 'changed'})
+        response = self.client.patch(eio.url, {'titel': 'changed'})
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, response.data)
 
@@ -83,12 +79,11 @@ class EioLockAPITests(JWTAuthMixin, APITestCase):
         self.assertEqual(error['code'], 'unlocked')
 
     def test_update_fail_wrong_id(self):
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create(lock=uuid.uuid4().hex)
-
-        url = get_operation_url('enkelvoudiginformatieobject_update', uuid=eio.latest_version.uuid)
+        eio = EnkelvoudigInformatieObjectFactory.create()
+        lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(eio.uuid)
 
         response = self.client.patch(
-            url,
+            eio.url,
             {'titel': 'changed',
              'lock': 12345}
         )
@@ -129,27 +124,20 @@ class EioUnlockAPITests(JWTAuthMixin, APITestCase):
     scopes = [SCOPE_DOCUMENTEN_LOCK]
 
     def test_unlock_success(self):
-        lock = uuid.uuid4().hex
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create(
-            latest_version__informatieobjecttype=INFORMATIEOBJECTTYPE,
-            lock=lock
-        )
-        url = get_operation_url('enkelvoudiginformatieobject_unlock', uuid=eio.latest_version.uuid)
-
+        eio = EnkelvoudigInformatieObjectFactory.create(informatieobjecttype=INFORMATIEOBJECTTYPE)
+        lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(eio.uuid)
+        url = get_operation_url('enkelvoudiginformatieobject_unlock', uuid=eio.uuid)
         response = self.client.post(url, {'lock': lock})
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT, response.data)
 
-        eio.refresh_from_db()
-
-        self.assertEqual(eio.lock, '')
+        eio = drc_storage_adapter.lees_enkelvoudiginformatieobject(eio.uuid)
+        self.assertFalse(eio.locked)
 
     def test_unlock_fail_incorrect_id(self):
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create(
-            latest_version__informatieobjecttype=INFORMATIEOBJECTTYPE,
-            lock=uuid.uuid4().hex
-        )
-        url = get_operation_url('enkelvoudiginformatieobject_unlock', uuid=eio.latest_version.uuid)
+        eio = EnkelvoudigInformatieObjectFactory.create(informatieobjecttype=INFORMATIEOBJECTTYPE)
+        lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(eio.uuid)
+        url = get_operation_url('enkelvoudiginformatieobject_unlock', uuid=eio.uuid)
 
         response = self.client.post(url)
 
@@ -162,16 +150,12 @@ class EioUnlockAPITests(JWTAuthMixin, APITestCase):
         self.autorisatie.scopes = [SCOPE_DOCUMENTEN_GEFORCEERD_UNLOCK]
         self.autorisatie.save()
 
-        eio = EnkelvoudigInformatieObjectCanonicalFactory.create(
-            latest_version__informatieobjecttype=INFORMATIEOBJECTTYPE,
-            lock=uuid.uuid4().hex
-        )
-        url = get_operation_url('enkelvoudiginformatieobject_unlock', uuid=eio.latest_version.uuid)
+        eio = EnkelvoudigInformatieObjectFactory.create(informatieobjecttype=INFORMATIEOBJECTTYPE)
+        lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(eio.uuid)
+        url = get_operation_url('enkelvoudiginformatieobject_unlock', uuid=eio.uuid)
 
         response = self.client.post(url)
-
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT, response.data)
 
-        eio.refresh_from_db()
-
-        self.assertEqual(eio.lock, '')
+        eio = drc_storage_adapter.lees_enkelvoudiginformatieobject(eio.uuid)
+        self.assertFalse(eio.locked)

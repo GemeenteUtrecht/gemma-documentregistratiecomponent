@@ -3,6 +3,8 @@ from django.test import override_settings
 from rest_framework.test import APITestCase
 from zds_client.tests.mocks import mock_client
 
+from drc.tests.mixins import DMSMixin
+
 from .factories import (
     EnkelvoudigInformatieObjectFactory, GebruiksrechtenFactory,
     ObjectInformatieObjectFactory
@@ -12,7 +14,7 @@ from .factories import (
 @override_settings(
     ZDS_CLIENT_CLASS='vng_api_common.mocks.MockClient'
 )
-class UniqueRepresentationTestCase(APITestCase):
+class UniqueRepresentationTestCase(DMSMixin, APITestCase):
 
     def test_eio(self):
         eio = EnkelvoudigInformatieObjectFactory(

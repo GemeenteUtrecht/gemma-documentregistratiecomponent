@@ -51,6 +51,11 @@ LOGGING['loggers'].update({
         'level': 'INFO',
         'propagate': True,
     },
+    # 'drc_cmis': {
+    #     'handlers': ['drc_cmis', 'console'],
+    #     'level': 'DEBUG',
+    #     'propagate': False,
+    # },
 })
 
 #

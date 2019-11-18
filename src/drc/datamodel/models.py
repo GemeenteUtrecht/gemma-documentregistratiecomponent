@@ -16,6 +16,8 @@ from vng_api_common.utils import (
 )
 from vng_api_common.validators import alphanumeric_excluding_diacritic
 
+from drc.backend import drc_storage_adapter
+
 from .constants import ChecksumAlgoritmes, OndertekeningSoorten, Statussen
 from .query import InformatieobjectQuerySet, InformatieobjectRelatedQuerySet
 from .validators import validate_status
@@ -273,8 +275,7 @@ class Gebruiksrechten(models.Model):
         unique=True, default=_uuid.uuid4,
         help_text="Unieke resource identifier (UUID4)"
     )
-    informatieobject = models.ForeignKey(
-        'EnkelvoudigInformatieObjectCanonical', on_delete=models.CASCADE,
+    informatieobject = models.URLField(
         help_text='URL-referentie naar het INFORMATIEOBJECT.'
     )
     omschrijving_voorwaarden = models.TextField(
@@ -303,11 +304,12 @@ class Gebruiksrechten(models.Model):
 
     @transaction.atomic
     def save(self, *args, **kwargs):
-        informatieobject_versie = self.informatieobject.latest_version
         # ensure the indication is set properly on the IO
-        if not informatieobject_versie.indicatie_gebruiksrecht:
-            informatieobject_versie.indicatie_gebruiksrecht = True
-            informatieobject_versie.save()
+        eio = drc_storage_adapter.lees_enkelvoudiginformatieobject(self.informatieobject.split('/')[-1])
+        if not eio.indicatie_gebruiksrecht:
+            eio.indicatie_gebruiksrecht = True
+            eio.update()
+
         super().save(*args, **kwargs)
 
     @transaction.atomic
