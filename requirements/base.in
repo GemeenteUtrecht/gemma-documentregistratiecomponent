@@ -9,6 +9,7 @@ Sphinx
 sphinx-rtd-theme
 markdown
 import_class
+humanize
 
 Django
 django-axes
