@@ -4,7 +4,7 @@
 #
 #    pip-compile --no-index --output-file requirements/base.txt requirements/base.in
 #
--e git+git://github.com/GemeenteUtrecht/vng-api-common@ccbc8e7c0549ff28d52c711ff7336909a2157951#egg=vng_api_common
+-e git+git://github.com/GemeenteUtrecht/vng-api-common@feature/drc-cmis#egg=vng_api_common
 alabaster==0.7.12         # via sphinx
 babel==2.6.0              # via sphinx
 certifi==2018.4.16        # via requests
