@@ -28,6 +28,11 @@ testen.
 
 Dit document bevat de technische documentatie voor deze component.
 
+Alfresco
+========
+
+Alfresco needs to be loaded with a custom content model, which you can find in
+the `gemma-drc-cmis`_ repository.
 
 Contents
 ========
@@ -60,3 +65,5 @@ References
      :alt: Requirements status
 
 .. _testomgeving: https://documenten-api.vng.cloud/
+
+.. _gemma-drc-cmis: https://github.com/GemeenteUtrecht/gemma-drc-cmis/blob/development/alfresco/extension/
