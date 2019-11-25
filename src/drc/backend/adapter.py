@@ -31,9 +31,11 @@ class DRCStorageAdapter:
         return data
 
     def lees_enkelvoudiginformatieobjecten(self, page, page_size, filters):
+        filters = {key: value for key, value in filters.items() if value is not None}
         return self.backend().get_documents(page=page, page_size=page_size, filters=filters)
 
     def lees_enkelvoudiginformatieobject(self, uuid, versie=None, filters=None):
+        filters = {key: value for key, value in filters.items() if value is not None}
         return self.backend().get_document(uuid=uuid, version=versie, filters=filters)
 
     def lees_enkelvoudiginformatieobject_inhoud(self, uuid):
@@ -63,6 +65,7 @@ class DRCStorageAdapter:
         return self.backend().create_document_case_connection(data=gevalideerde_data.copy())
 
     def lees_objectinformatieobjecten(self, filters=None):
+        filters = {key: value for key, value in filters.items() if value is not None}
         return self.backend().get_document_case_connections(filters=filters)
 
     def lees_objectinformatieobject(self, uuid):

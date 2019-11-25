@@ -257,7 +257,7 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         filters = EnkelvoudigInformatieObjectDetailFilter(data=data)
         if not filters.is_valid():
             return Response(filters.errors, status=400)
-        print('get_filters', filters.get_filters())
+
         try:
             document = drc_storage_adapter.lees_enkelvoudiginformatieobject(
                 uuid=uuid, versie=request.GET.get('versie'), filters=filters.form.cleaned_data

@@ -68,7 +68,7 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, JWTAuthMixin, APITestCase):
         self.assertEqual(stored_object.auteur, 'test_auteur')
         self.assertEqual(stored_object.formaat, 'txt')
         self.assertEqual(stored_object.taal, 'eng')
-        self.assertEqual(stored_object.versie, 1)
+        self.assertEqual(stored_object.versie, 100)
         self.assertAlmostEqual(stored_object.begin_registratie, timezone.now())
         self.assertEqual(stored_object.bestandsnaam, 'dummy.txt')
         self.assertEqual(stored_object.inhoud.read(), b'some file content')
@@ -87,7 +87,7 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, JWTAuthMixin, APITestCase):
         expected_response.update({
             'url': f"http://testserver{expected_url}",
             'inhoud': f"{stored_object.inhoud.url}",
-            'versie': 1,
+            'versie': 100,
             'beginRegistratie': stored_object.begin_registratie.isoformat().replace('+00:00', 'Z'),
             'vertrouwelijkheidaanduiding': 'openbaar',
             'bestandsomvang': stored_object.inhoud.size,
@@ -144,7 +144,7 @@ class EnkelvoudigInformatieObjectAPITests(DMSMixin, JWTAuthMixin, APITestCase):
             'formaat': 'some formaat',
             'taal': 'nld',
             'beginRegistratie': test_object.begin_registratie.isoformat().replace('+00:00', 'Z'),
-            'versie': '1.1',
+            'versie': 110,
             'bestandsnaam': '',
             'inhoud': f'{test_object.inhoud}',
             'bestandsomvang': test_object.bestandsomvang,
@@ -421,11 +421,11 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, 
         self.assertEqual(len(eios), 2)
 
         latest_version = eios.first()
-        self.assertEqual(latest_version.versie, 2)
+        self.assertEqual(latest_version.versie, 200)
         self.assertEqual(latest_version.beschrijving, 'beschrijving2')
 
         first_version = eios[1]
-        self.assertEqual(first_version.versie, 1)
+        self.assertEqual(first_version.versie, 100)
         self.assertEqual(first_version.beschrijving, 'beschrijving1')
 
     def test_eio_partial_update(self):
@@ -449,11 +449,11 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, 
         self.assertEqual(len(eios), 2)
 
         latest_version = eios.first()
-        self.assertEqual(latest_version.versie, 2)
+        self.assertEqual(latest_version.versie, 200)
         self.assertEqual(latest_version.beschrijving, 'beschrijving2')
 
         first_version = eios[1]
-        self.assertEqual(first_version.versie, 1)
+        self.assertEqual(first_version.versie, 100)
         self.assertEqual(first_version.beschrijving, 'beschrijving1')
 
     def test_eio_delete(self):
@@ -532,7 +532,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, 
             'lock': lock
         })
 
-        response = self.client.get(eio_url, {'versie': 1.0})
+        response = self.client.get(eio_url, {'versie': 100})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['beschrijving'], 'beschrijving1')
 
@@ -590,8 +590,9 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, 
             'lock': lock
         })
 
-        response = self.client.get(eio.url, {'versie': '1.0'})
+        response = self.client.get(eio.url, {'versie': 100})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        print(response.json())
         response = self.client.get(response.data['inhoud'])
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response._container[0], b'inhoud1')

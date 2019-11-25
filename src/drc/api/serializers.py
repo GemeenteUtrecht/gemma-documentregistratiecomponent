@@ -271,7 +271,7 @@ class RetrieveEnkelvoudigInformatieObjectSerializer(BaseEnkelvoudigInformatieObj
             "mogen er aanpassingen gemaakt worden."
         )
     )
-    versie = serializers.CharField(allow_blank=True)
+    versie = serializers.IntegerField()
     beginRegistratie = serializers.DateTimeField(
         allow_null=True
     )
@@ -449,7 +449,9 @@ class ObjectInformatieObjectSerializer(serializers.Serializer):
 
 
 class GebruiksrechtenSerializer(serializers.HyperlinkedModelSerializer):
-    # informatieobject = EnkelvoudigInformatieObjectHyperlinkedRelatedField(
+    informatieobject = serializers.URLField(
+        max_length=255, required=False, allow_blank=True, allow_null=True,
+    )
     #     view_name='enkelvoudiginformatieobjecten-detail',
     #     lookup_field='uuid',
     #     queryset=EnkelvoudigInformatieObject.objects,
@@ -469,7 +471,7 @@ class GebruiksrechtenSerializer(serializers.HyperlinkedModelSerializer):
             'url': {
                 'lookup_field': 'uuid',
             },
-            'informatieobject': {
-                'validators': [IsImmutableValidator()],
-            },
+            # 'informatieobject': {
+            #     'validators': [IsImmutableValidator()],
+            # },
         }

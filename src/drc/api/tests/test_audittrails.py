@@ -105,6 +105,8 @@ class AuditTrailTests(JWTAuthMixin, APITestCase):
 
         gebruiksrechten_response = self.client.post(self.gebruiksrechten_list_url, content).data
         print('= TESTINGS ==================================================')
+        print(self.gebruiksrechten_list_url)
+        print(content)
         print(gebruiksrechten_response)
         print('= END TESTINGS ==================================================')
         informatieobject_url = gebruiksrechten_response['informatieobject']
