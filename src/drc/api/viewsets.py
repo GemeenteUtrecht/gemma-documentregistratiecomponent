@@ -80,6 +80,15 @@ REGISTRATIE_QUERY_PARAM = openapi.Parameter(
 )
 
 
+def fields_in_filters(filters, request):
+    valid = True
+    for key, _value in request.GET.items():
+        if key not in filters.declared_filters:
+            filters.form.add_error('__all__', _('This field is not a valid filter option'))
+            valid = False
+    return valid
+
+
 def raise_validation_error(message, code):
     raise serializers.ValidationError(detail=serializers.as_serializer_error(serializers.ValidationError(
         message, code=code
@@ -241,6 +250,8 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
 
     def list(self, request, version=None):
         filters = self.filterset_class(data=self.request.GET)
+        if not fields_in_filters(filters, request):
+            return Response(filters.errors, status=400)
         if not filters.is_valid():
             return Response(filters.errors, status=400)
 
@@ -255,6 +266,8 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
     def retrieve(self, request, uuid=None, version=None):
         data = self.request.GET.copy()
         filters = EnkelvoudigInformatieObjectDetailFilter(data=data)
+        if not fields_in_filters(filters, request):
+            return Response(filters.errors, status=400)
         if not filters.is_valid():
             return Response(filters.errors, status=400)
 
@@ -519,7 +532,11 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
 
     def list(self, request, version=None):
         filters = self.filterset_class(data=self.request.GET)
+        if not fields_in_filters(filters, request):
+            print('not field')
+            return Response(filters.errors, status=400)
         if not filters.is_valid():
+            print('not valid')
             return Response(filters.errors, status=400)
         documents_data = drc_storage_adapter.lees_objectinformatieobjecten(filters=filters.form.cleaned_data)
         serializer = ObjectInformatieObjectSerializer(instance=documents_data, many=True)
