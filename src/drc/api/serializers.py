@@ -4,8 +4,6 @@ Serializers of the Document Registratie Component REST API
 import uuid
 
 from django.conf import settings
-from django.db import transaction
-from django.utils.encoding import force_text
 from django.utils.http import urlencode
 from django.utils.module_loading import import_string
 from django.utils.translation import ugettext_lazy as _
@@ -19,7 +17,7 @@ from vng_api_common.constants import ObjectTypes, VertrouwelijkheidsAanduiding
 from vng_api_common.fields import LANGUAGE_CHOICES
 from vng_api_common.models import APICredential
 from vng_api_common.serializers import (
-    GegevensGroepSerializer, add_choice_values_help_text
+    add_choice_values_help_text
 )
 from vng_api_common.utils import get_help_text
 from vng_api_common.validators import IsImmutableValidator, URLValidator
@@ -29,8 +27,8 @@ from drc.datamodel.constants import (
     ChecksumAlgoritmes, OndertekeningSoorten, Statussen
 )
 from drc.datamodel.models import (
-    EnkelvoudigInformatieObject, EnkelvoudigInformatieObjectCanonical,
-    Gebruiksrechten, ObjectInformatieObject
+    EnkelvoudigInformatieObjectCanonical,
+    Gebruiksrechten
 )
 
 from .auth import get_zrc_auth, get_ztc_auth
@@ -87,7 +85,10 @@ class AnyBase64File(Base64FileField):
 
 
 class IntegriteitSerializer(serializers.Serializer):
-    algoritme = serializers.ChoiceField(choices=ChecksumAlgoritmes.choices, help_text=_("Aanduiding van algoritme, gebruikt om de checksum te maken."))
+    algoritme = serializers.ChoiceField(
+        choices=ChecksumAlgoritmes.choices,
+        help_text=_("Aanduiding van algoritme, gebruikt om de checksum te maken.")
+    )
     waarde = serializers.CharField(min_length=1, max_length=128, help_text=_("De waarde van de checksum."))
     datum = serializers.DateField(help_text=_("Datum waarop de checksum is gemaakt."))
 
@@ -98,8 +99,12 @@ class IntegriteitSerializer(serializers.Serializer):
 
 
 class OndertekeningSerializer(serializers.Serializer):
-    soort = serializers.ChoiceField(choices=OndertekeningSoorten.choices, help_text=_("Aanduiding van de wijze van ondertekening van het INFORMATIEOBJECT"))
-    datum = serializers.DateField(help_text=_("De datum waarop de ondertekening van het INFORMATIEOBJECT heeft plaatsgevonden."))
+    soort = serializers.ChoiceField(
+        choices=OndertekeningSoorten.choices,
+        help_text=_("Aanduiding van de wijze van ondertekening van het INFORMATIEOBJECT")
+    )
+    datum = serializers.DateField(
+        help_text=_("De datum waarop de ondertekening van het INFORMATIEOBJECT heeft plaatsgevonden."))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -398,13 +403,23 @@ class UnlockEnkelvoudigInformatieObjectSerializer(serializers.ModelSerializer):
 
 class ObjectInformatieObjectSerializer(serializers.Serializer):
     url = serializers.URLField(allow_blank=True, allow_null=True, required=False)
-    informatieobject = serializers.URLField(allow_blank=True, allow_null=True, validators=[IsImmutableValidator()], help_text=get_help_text('datamodel.ObjectInformatieObject', 'informatieobject'),)
+    informatieobject = serializers.URLField(
+        allow_blank=True,
+        allow_null=True,
+        validators=[IsImmutableValidator()],
+        help_text=get_help_text('datamodel.ObjectInformatieObject', 'informatieobject'),)
     object = serializers.URLField(
         max_length=200, allow_blank=True, allow_null=True,
         validators=[URLValidator(get_auth=get_zrc_auth, headers={'Accept-Crs': 'EPSG:4326'}), IsImmutableValidator()],
         help_text="URL naar het gerelateerde OBJECT."
     )
-    object_type = serializers.ChoiceField(allow_blank=True, allow_null=True, choices=ObjectTypes.choices, validators=[IsImmutableValidator()], help_text="Het type van het gerelateerde OBJECT.\n\nUitleg bij mogelijke waarden:")
+    object_type = serializers.ChoiceField(
+        allow_blank=True,
+        allow_null=True,
+        choices=ObjectTypes.choices,
+        validators=[IsImmutableValidator()],
+        help_text="Het type van het gerelateerde OBJECT.\n\nUitleg bij mogelijke waarden:"
+    )
 
     class Meta:
         extra_kwargs = {
