@@ -14,7 +14,6 @@ from privates.storages import PrivateMediaFileSystemStorage
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from vng_api_common.constants import ObjectTypes, VertrouwelijkheidsAanduiding
-from vng_api_common.fields import LANGUAGE_CHOICES
 from vng_api_common.models import APICredential
 from vng_api_common.serializers import (
     add_choice_values_help_text
@@ -149,9 +148,12 @@ class BaseEnkelvoudigInformatieObjectSerializer(serializers.Serializer):
         max_length=255, required=False, allow_blank=True, allow_null=True,
         help_text='De code voor de wijze waarop de inhoud van het ENKELVOUDIG INFORMATIEOBJECT is vastgelegd in een computerbestand.'
     )
-    taal = serializers.ChoiceField(
-        choices=LANGUAGE_CHOICES, allow_blank=True, allow_null=True,
-        help_text='Een taal van de intellectuele inhoud van het ENKELVOUDIG INFORMATIEOBJECT. De waardes komen uit ISO 639-2/B'
+    taal = serializers.CharField(
+        help_text=(
+            "Een ISO 639-2/B taalcode waarin de inhoud van het "
+            "INFORMATIEOBJECT is vastgelegd. Voorbeeld: `nld`. Zie: "
+            "https://www.iso.org/standard/4767.html"
+        )
     )
     bestandsnaam = serializers.CharField(
         max_length=255, required=False, allow_blank=True, allow_null=True,
