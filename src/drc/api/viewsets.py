@@ -299,6 +299,23 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         return response
 
     def update(self, request, uuid=None, version=None):
+        if 'ontvangstdatum' in request.data:
+            return Response({
+                "type": "error",
+                "code": "create_only",
+                "title": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
+                "status": 400,
+                "detail": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
+                "instance": "string",
+                "invalidParams":
+                [
+                    {
+                        "name": "ontvangstdatum",
+                        "code": "create_only",
+                        "reason": "ontvangstdatum kan alleen gezet worden tijden het creëren."
+                    }
+                ]
+            }, status=status.HTTP_400_BAD_REQUEST)
         before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
         serializer = self.get_serializer(data=request.data)
         try:
@@ -329,12 +346,31 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
             return response
 
     def partial_update(self, request, uuid=None, version=None):
+        if 'ontvangstdatum' in request.data:
+            return Response({
+                "type": "error",
+                "code": "create_only",
+                "title": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
+                "status": 400,
+                "detail": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
+                "instance": "string",
+                "invalidParams":
+                [
+                    {
+                        "name": "ontvangstdatum",
+                        "code": "create_only",
+                        "reason": "ontvangstdatum kan alleen gezet worden tijden het creëren."
+                    }
+                ]
+            }, status=status.HTTP_400_BAD_REQUEST)
         before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
         serializer = self.get_serializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         try:
             data = serializer.update(uuid, lock=request.data.get('lock'))
         except BackendException as e:
+            print('e')
+            print(e.code)
             if e.code == 'not-locked':
                 raise_validation_error(_("Unlocked document can't be modified"), code='unlocked')
             elif e.code == 'wrong-lock':

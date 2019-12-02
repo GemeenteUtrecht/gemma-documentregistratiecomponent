@@ -35,7 +35,8 @@ class DRCStorageAdapter:
         return self.backend().get_documents(page=page, page_size=page_size, filters=filters)
 
     def lees_enkelvoudiginformatieobject(self, uuid, versie=None, filters=None):
-        filters = {key: value for key, value in filters.items() if value is not None}
+        if filters:
+            filters = {key: value for key, value in filters.items() if value is not None}
         return self.backend().get_document(uuid=uuid, version=versie, filters=filters)
 
     def lees_enkelvoudiginformatieobject_inhoud(self, uuid):
