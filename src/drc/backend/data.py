@@ -65,7 +65,7 @@ class EnkelvoudigInformatieObject:
         del data['bestandsomvang']
         data = {k: v for k, v in data.items() if v is not None}
         drc_storage_adapter.update_enkenvoudiginformatieobject(self.uuid, lock, data)
-        drc_storage_adapter.unlock_enkelvoudiginformatieobject(self.uuid, lock)
+        return drc_storage_adapter.unlock_enkelvoudiginformatieobject(self.uuid, lock)
 
 
 @dataclass

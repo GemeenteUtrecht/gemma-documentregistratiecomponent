@@ -29,6 +29,7 @@ from vng_api_common.serializers import FoutSerializer
 from vng_api_common.viewsets import CheckQueryParamsMixin
 
 from drc.backend import BackendException, drc_storage_adapter
+from drc.datamodel.constants import Statussen
 from drc.datamodel.models import (
     EnkelvoudigInformatieObject, EnkelvoudigInformatieObjectCanonical,
     Gebruiksrechten, ObjectInformatieObject
@@ -78,6 +79,30 @@ REGISTRATIE_QUERY_PARAM = openapi.Parameter(
                 'kortst hiervoor zit wordt opgehaald.',
     type=openapi.TYPE_STRING
 )
+
+
+def test_invalid_statusses(request_data):
+    errors = []
+    print(request_data)
+    if request_data.get('status') in [Statussen.in_bewerking, Statussen.ter_vaststelling] and request_data.get('ontvangstdatum') is not None:
+        errors.append({
+            "name": "status",
+            "code": "invalid_for_received",
+            "reason": "De waarden ?in bewerking? en ?ter vaststelling? zijn niet van toepassing op ontvangen informatieobjecten."
+        })
+    return errors
+
+
+def test_ontvangstdatum_invalid_statusses(request_data, instance):
+    errors = []
+    print(request_data)
+    if instance.status in [Statussen.in_bewerking, Statussen.ter_vaststelling] and request_data.get('ontvangstdatum') is not None:
+        errors.append({
+            "name": "status",
+            "code": "invalid_for_received",
+            "reason": "De waarden ?in bewerking? en ?ter vaststelling? zijn niet van toepassing op ontvangen informatieobjecten."
+        })
+    return errors
 
 
 def fields_in_filters(filters, request):
@@ -281,6 +306,18 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         return Response(serializer.data)
 
     def create(self, request, version=None):
+        errors = test_invalid_statusses(request.data)
+        if errors:
+            return Response({
+                "type": "error",
+                "code": "invalid_for_received",
+                "title": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
+                "status": 400,
+                "detail": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
+                "instance": "string",
+                "invalid_params": errors,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = EnkelvoudigInformatieObjectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.create()
@@ -299,24 +336,20 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
         return response
 
     def update(self, request, uuid=None, version=None):
-        if 'ontvangstdatum' in request.data:
+        before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
+
+        errors = test_ontvangstdatum_invalid_statusses(request.data, before)
+        if errors:
             return Response({
                 "type": "error",
-                "code": "create_only",
+                "code": "invalid_for_received",
                 "title": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
                 "status": 400,
                 "detail": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
                 "instance": "string",
-                "invalidParams":
-                [
-                    {
-                        "name": "ontvangstdatum",
-                        "code": "create_only",
-                        "reason": "ontvangstdatum kan alleen gezet worden tijden het creëren."
-                    }
-                ]
+                "invalid_params": errors,
             }, status=status.HTTP_400_BAD_REQUEST)
-        before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
+
         serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
@@ -346,24 +379,20 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
             return response
 
     def partial_update(self, request, uuid=None, version=None):
-        if 'ontvangstdatum' in request.data:
+        before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
+
+        errors = test_ontvangstdatum_invalid_statusses(request.data, before)
+        if errors:
             return Response({
                 "type": "error",
-                "code": "create_only",
+                "code": "invalid_for_received",
                 "title": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
                 "status": 400,
                 "detail": "ontvangstdatum kan alleen gezet worden tijden het creëren.",
                 "instance": "string",
-                "invalidParams":
-                [
-                    {
-                        "name": "ontvangstdatum",
-                        "code": "create_only",
-                        "reason": "ontvangstdatum kan alleen gezet worden tijden het creëren."
-                    }
-                ]
+                "invalid_params": errors,
             }, status=status.HTTP_400_BAD_REQUEST)
-        before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
+
         serializer = self.get_serializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         try:

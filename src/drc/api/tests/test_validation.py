@@ -156,7 +156,6 @@ class InformatieObjectStatusTests(DMSMixin, JWTAuthMixin, APITestCase):
                 _data['status'] = invalid_status
 
                 response = self.client.post(self.url, _data)
-
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
             error = get_validation_errors(response, 'status')
             self.assertEqual(error['code'], 'invalid_for_received')
@@ -189,19 +188,20 @@ class InformatieObjectStatusTests(DMSMixin, JWTAuthMixin, APITestCase):
             informatieobjecttype=INFORMATIEOBJECTTYPE
         )
         url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={'uuid': eio.uuid})
-        lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(eio.uuid)
 
         for invalid_status in (Statussen.in_bewerking, Statussen.ter_vaststelling):
             with self.subTest(status=invalid_status):
                 eio.status = invalid_status
-                # eio.update()
+                eio = eio.update()
+
+                lock = drc_storage_adapter.lock_enkelvoudiginformatieobject(eio.uuid)
                 data = {'ontvangstdatum': '2018-12-24', 'lock': lock}
-                print(url)
                 response = self.client.patch(url, data)
 
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, msg=response.json())
                 error = get_validation_errors(response, 'status')
                 self.assertEqual(error['code'], 'invalid_for_received')
+                eio = drc_storage_adapter.unlock_enkelvoudiginformatieobject(eio.uuid, lock)
 
 
 class FilterValidationTests(DMSMixin, JWTAuthMixin, APITestCase):

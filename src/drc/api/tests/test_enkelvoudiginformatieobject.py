@@ -416,17 +416,13 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, 
 
         self.assertEqual(response_data['beschrijving'], 'beschrijving2')
 
-        paged_results = drc_storage_adapter.lees_enkelvoudiginformatieobjecten(page=1, page_size=100, filters=None)
-        eios = paged_results.results
-        self.assertEqual(len(eios), 2)
-
-        latest_version = eios.first()
+        drc_storage_adapter.unlock_enkelvoudiginformatieobject(eio.uuid, lock)
+        latest_version = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid=eio.uuid)
         self.assertEqual(latest_version.versie, 200)
         self.assertEqual(latest_version.beschrijving, 'beschrijving2')
 
-        first_version = eios[1]
-        self.assertEqual(first_version.versie, 100)
-        self.assertEqual(first_version.beschrijving, 'beschrijving1')
+        self.assertEqual(eio.versie, 110)
+        self.assertEqual(eio.beschrijving, 'beschrijving1')
 
     def test_eio_partial_update(self):
         eio = EnkelvoudigInformatieObjectFactory.create(beschrijving='beschrijving1')
@@ -444,17 +440,14 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, 
         response_data = response.json()
 
         self.assertEqual(response_data['beschrijving'], 'beschrijving2')
+        drc_storage_adapter.unlock_enkelvoudiginformatieobject(eio.uuid, lock)
 
-        eios = EnkelvoudigInformatieObject.objects.filter(uuid=eio.uuid).order_by('-versie')
-        self.assertEqual(len(eios), 2)
-
-        latest_version = eios.first()
+        latest_version = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid=eio.uuid)
         self.assertEqual(latest_version.versie, 200)
         self.assertEqual(latest_version.beschrijving, 'beschrijving2')
 
-        first_version = eios[1]
-        self.assertEqual(first_version.versie, 100)
-        self.assertEqual(first_version.beschrijving, 'beschrijving1')
+        self.assertEqual(eio.versie, 110)
+        self.assertEqual(eio.beschrijving, 'beschrijving1')
 
     def test_eio_delete(self):
         eio = EnkelvoudigInformatieObjectFactory.create(beschrijving='beschrijving1')
@@ -489,8 +482,7 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, 
         self.assertEqual(response.data['beschrijving'], 'beschrijving2')
 
     def test_eio_list_shows_latest_versions(self):
-        eio1 = EnkelvoudigInformatieObjectFactory.create(beschrijving='object1')
-
+        eio1 = EnkelvoudigInformatieObjectFactory(beschrijving='object1')
         eio1_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio1.uuid,
         })
@@ -499,9 +491,9 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, 
             'beschrijving': 'object1 versie2',
             'lock': lock
         })
+        eio1 = drc_storage_adapter.unlock_enkelvoudiginformatieobject(eio1.uuid, lock)
 
-        eio2 = EnkelvoudigInformatieObjectFactory.create(beschrijving='object2')
-
+        eio2 = EnkelvoudigInformatieObjectFactory(beschrijving='object2')
         eio2_url = reverse('enkelvoudiginformatieobjecten-detail', kwargs={
             'uuid': eio2.uuid,
         })
@@ -510,11 +502,16 @@ class EnkelvoudigInformatieObjectVersionHistoryAPITests(DMSMixin, JWTAuthMixin, 
             'beschrijving': 'object2 versie2',
             'lock': lock
         })
+        eio2 = drc_storage_adapter.unlock_enkelvoudiginformatieobject(eio2.uuid, lock)
 
-        response = self.client.get(reverse(EnkelvoudigInformatieObject))
+        list_url = reverse(EnkelvoudigInformatieObject)
+        print(list_url)
+        response = self.client.get(list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+        print(response.data)
         response_data = response.data['results']
+        print(response_data)
         self.assertEqual(len(response_data), 2)
 
         self.assertEqual(response_data[0]['beschrijving'], 'object1 versie2')

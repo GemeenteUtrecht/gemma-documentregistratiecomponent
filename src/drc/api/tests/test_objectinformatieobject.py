@@ -89,12 +89,13 @@ class ObjectInformatieObjectTests(DMSMixin, JWTAuthMixin, APITestCase):
             'uuid': uuid.uuid4(),
             'informatieobject': eio.url, 'object': 'https://zrc.nl/api/v1/zaken/2', 'object_type': 'zaak'
         })
-
+        print(self.list_url)
         response = self.client.get(self.list_url, {
             'informatieobject': eio.url,
         })
         self.assertEqual(response.status_code, 200, msg=response.json())
         self.assertEqual(len(response.data), 1)
+        print(response.data)
         self.assertEqual(response.data[0]['informatieobject'], eio.url)
 
 
