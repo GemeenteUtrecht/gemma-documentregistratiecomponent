@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime
 
 
@@ -24,15 +24,15 @@ class EnkelvoudigInformatieObject:
     bronorganisatie: str
     vertrouwelijkheidaanduiding: str
     auteur: str
-    status: str = field(default="")
-    beschrijving: str = field(default="")
+    status: str
+    beschrijving: str
     indicatie_gebruiksrecht: str
     ondertekening_soort: str
     informatieobjecttype: str
-    formaat: str = field(default="")
+    formaat: str
     taal: str
-    bestandsnaam: str = field(default="")
-    link: str = field(default="")
+    bestandsnaam: str
+    link: str
     integriteit_algoritme: str
     integriteit_waarde: str
     bestandsomvang: str
