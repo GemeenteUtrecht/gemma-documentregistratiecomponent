@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Dict
 
 
 @dataclass
@@ -66,6 +67,21 @@ class EnkelvoudigInformatieObject:
         data = {k: v for k, v in data.items() if v is not None}
         drc_storage_adapter.update_enkenvoudiginformatieobject(self.uuid, lock, data)
         return drc_storage_adapter.unlock_enkelvoudiginformatieobject(self.uuid, lock)
+
+    @property
+    def integriteit(self) -> Dict[str, str]:
+        return {
+            "algoritme": self.integriteit_algoritme,
+            "waarde": self.integriteit_waarde,
+            "datum": self.integriteit_datum,
+        }
+
+    @property
+    def ondertekening(self) -> Dict[str, str]:
+        return {
+            "soort": self.ondertekening_soort,
+            "datum": self.ondertekening_datum,
+        }
 
 
 @dataclass
