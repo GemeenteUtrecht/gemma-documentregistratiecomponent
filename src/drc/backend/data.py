@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Dict
+from typing import Dict, Optional
 
 
 @dataclass
@@ -27,7 +27,7 @@ class EnkelvoudigInformatieObject:
     auteur: str
     status: str
     beschrijving: str
-    indicatie_gebruiksrecht: str
+    indicatie_gebruiksrecht: Optional[bool]
     ondertekening_soort: str
     informatieobjecttype: str
     formaat: str
@@ -40,6 +40,11 @@ class EnkelvoudigInformatieObject:
     begin_registratie: datetime
     versie: str
     locked: bool
+
+    def __post_init__(self):
+        # FIXME - this is NOT a default, but required for the archiving flow
+        # with Contezza
+        self.indicatie_gebruiksrecht = self.indicatie_gebruiksrecht or False
 
     #TODO: Fix a little better
     @property
