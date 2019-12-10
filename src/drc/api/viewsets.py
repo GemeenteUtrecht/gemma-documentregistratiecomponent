@@ -616,14 +616,12 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
         serializer = ObjectInformatieObjectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            oio = serializer.create()
+            serializer.create()
         except BackendException:
             raise_validation_error(_("connection is not unique"), code="unique")
 
         headers = self.get_success_headers(serializer.data)
-        response = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        self.notify(response.status_code, oio)
-        return response
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def update(self, request, uuid=None, version=None):
         serializer = ObjectInformatieObjectSerializer(data=request.data)
