@@ -25,7 +25,7 @@ djangorestframework-camel-case
 djangorestframework-filters
 drf-yasg
 -e git+git://github.com/GemeenteUtrecht/vng-api-common@feature/drc-cmis#egg=vng_api_common
-drc-cmis==0.3.6
+drc-cmis==0.3.7
 
 # Not installed with vng-api-common
 djangorestframework-gis
