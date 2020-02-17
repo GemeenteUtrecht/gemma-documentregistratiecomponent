@@ -616,7 +616,8 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
         serializer = ObjectInformatieObjectSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            serializer.create()
+            oio = serializer.create()
+            serializer.instance = oio
         except BackendException:
             raise_validation_error(_("connection is not unique"), code="unique")
 
