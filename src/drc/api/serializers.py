@@ -53,6 +53,9 @@ class AnyBase64File(Base64FileField):
         return "bin"
 
     def to_representation(self, file):
+        if isinstance(file, str):
+            return file
+
         is_private_storage = isinstance(file.storage, PrivateMediaFileSystemStorage)
 
         if not is_private_storage or self.represent_in_base64:

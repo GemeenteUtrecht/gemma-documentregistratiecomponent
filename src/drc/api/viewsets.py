@@ -380,7 +380,6 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
 
     def partial_update(self, request, uuid=None, version=None):
         before = drc_storage_adapter.lees_enkelvoudiginformatieobject(uuid)
-
         errors = test_ontvangstdatum_invalid_statusses(request.data, before)
         if errors:
             return Response({
@@ -393,10 +392,12 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
                 "invalid_params": errors,
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.get_serializer(data=request.data, partial=True)
+        serializer = self.get_serializer(instance=before, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         try:
             data = serializer.update(uuid, lock=request.data.get('lock'))
+            # don't  know the right place to actually fix this
+            data.identificatie = before.identificatie
         except BackendException as e:
             print('e')
             print(e.code)
