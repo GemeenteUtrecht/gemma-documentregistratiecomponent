@@ -84,6 +84,7 @@ RUN apk --no-cache add \
 COPY --from=build /usr/local/lib/python3.7 /usr/local/lib/python3.7
 COPY --from=build /usr/local/bin/uwsgi /usr/local/bin/uwsgi
 COPY --from=build /usr/local/bin/sphinx-build /usr/local/bin/sphinx-build
+COPY --from=build /app/src /app/src
 # required for swagger2openapi conversion
 COPY --from=frontend-build /app/node_modules /app/node_modules
 
