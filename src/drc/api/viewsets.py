@@ -83,7 +83,6 @@ REGISTRATIE_QUERY_PARAM = openapi.Parameter(
 
 def test_invalid_statusses(request_data):
     errors = []
-    print(request_data)
     if request_data.get('status') in [Statussen.in_bewerking, Statussen.ter_vaststelling] and request_data.get('ontvangstdatum') is not None:
         errors.append({
             "name": "status",
@@ -95,7 +94,6 @@ def test_invalid_statusses(request_data):
 
 def test_ontvangstdatum_invalid_statusses(request_data, instance):
     errors = []
-    print(request_data)
     if instance.status in [Statussen.in_bewerking, Statussen.ter_vaststelling] and request_data.get('ontvangstdatum') is not None:
         errors.append({
             "name": "status",
@@ -399,8 +397,6 @@ class EnkelvoudigInformatieObjectViewSet(SerializerClassMixin,
             # don't  know the right place to actually fix this
             data.identificatie = before.identificatie
         except BackendException as e:
-            print('e')
-            print(e.code)
             if e.code == 'not-locked':
                 raise_validation_error(_("Unlocked document can't be modified"), code='unlocked')
             elif e.code == 'wrong-lock':
@@ -599,10 +595,8 @@ class ObjectInformatieObjectViewSet(NotificationCreateMixin,
     def list(self, request, version=None):
         filters = self.filterset_class(data=self.request.GET)
         if not fields_in_filters(filters, request):
-            print('not field')
             return Response(filters.errors, status=400)
         if not filters.is_valid():
-            print('not valid')
             return Response(filters.errors, status=400)
         documents_data = drc_storage_adapter.lees_objectinformatieobjecten(filters=filters.form.cleaned_data)
         serializer = ObjectInformatieObjectSerializer(instance=documents_data, many=True)
