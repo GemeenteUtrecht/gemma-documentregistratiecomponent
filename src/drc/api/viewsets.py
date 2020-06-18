@@ -106,8 +106,11 @@ def test_ontvangstdatum_invalid_statusses(request_data, instance):
 def fields_in_filters(filters, request):
     valid = True
     for key, _value in request.GET.items():
-        if key not in filters.declared_filters:
-            filters.form.add_error('__all__', _('This field is not a valid filter option'))
+        if key not in filters.filters:
+            filters.form.add_error(
+                api_settings.NON_FIELD_ERRORS_KEY,
+                _("'{key}' is not a valid filter option.").format(key=key)
+            )
             valid = False
     return valid
 
