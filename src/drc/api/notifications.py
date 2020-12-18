@@ -103,7 +103,6 @@ class NotificationMixin(metaclass=NotificationMixinBase):
 
         if model is kanaal.main_resource:
             main_object = self.get_main_object(data, instance)
-            logger.warning(data)
             main_object_url = data.url
         else:
             # lookup the main object from the URL
@@ -138,8 +137,6 @@ class NotificationMixin(metaclass=NotificationMixinBase):
         if settings.NOTIFICATIONS_DISABLED:
             return
 
-        logger.warning(data)
-
         # do nothing unless we have a 'success' status code - early exit here
         if not 200 <= status_code < 300:
             logger.info("Not notifying, status code '%s' does not represent success.", status_code)
@@ -155,7 +152,7 @@ class NotificationMixin(metaclass=NotificationMixinBase):
             client.create('notificaties', message)
         # any unexpected errors should show up in error-monitoring, so we only
         # catch ClientError exceptions
-        except ClientError as exc:
+        except ClientError:
             logger.warning("Could not deliver message to %s", client.base_url, exc_info=True)
 
 

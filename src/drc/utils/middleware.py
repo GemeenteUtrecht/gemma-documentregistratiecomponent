@@ -14,4 +14,7 @@ class LogHeadersMiddleware:
         return self.get_response(request) if self.get_response else None
 
     def log(self, request: HttpRequest):
+        user_agent = request.headers.get("User-Agent")
+        if user_agent and user_agent.startswith("kube-probe"):
+            return
         logger.debug("Request headers for %s: %r", request.path, request.headers)
